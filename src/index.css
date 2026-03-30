@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #004d00; /* Deep Green from logo border */
+  --color-secondary: #ff8c00; /* Sunset Orange */
+  --color-accent: #cc0000; /* Logo Red */
+  --color-highlight: #ffcc00; /* Sunset Yellow */
+  --color-water: #0099cc; /* Water Blue */
+  --color-paper: #fff7e6; /* Warm Cream Background */
+  --color-ink: #1a1a1a; /* Dark text */
+}
+
+@layer base {
+  body {
+    @apply bg-paper text-ink;
+  }
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-paper;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-primary rounded-full;
+}
