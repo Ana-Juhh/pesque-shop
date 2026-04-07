@@ -95,7 +95,7 @@ export default function Header({ onNavigate, currentPage, cartCount, onOpenCart,
           >
             <div className="relative w-24 md:w-24 transition-all group-hover:scale-105">
               <img 
-                src="public/img/logo.png" 
+                src="/img/logo.png" 
                 alt="Pesque Shop Logo" 
                 className="w-full h-auto object-contain"
                 referrerPolicy="no-referrer"
