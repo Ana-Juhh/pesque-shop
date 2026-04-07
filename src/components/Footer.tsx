@@ -13,7 +13,7 @@ export default function Footer({ onNavigate }: FooterProps) {
           <div className="flex items-center gap-3 mb-6">
             <div className="bg-white p-1 rounded-full border-2 border-primary shadow-md">
               <img 
-                src="public/img/logo.png" 
+                src="/img/logo.png" 
                 alt="Logo" 
                 className="w-18 h-18 object-contain rounded-full"
                 referrerPolicy="no-referrer"

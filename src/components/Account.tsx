@@ -1,234 +1,197 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
-import { User, Mail, Phone, Lock, Save, LogOut, UserPlus } from "lucide-react";
+import { Lock, LogOut, Mail, Phone, ShieldCheck, UserPlus } from "lucide-react";
 
-export default function Account() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    phone: "",
-    email: "",
-    password: ""
-  });
+import AdminPanel from "./admin/AdminPanel";
+import type { SiteContent } from "../types/siteContent";
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoggedIn(true);
+const ADMIN_EMAIL = "admin@pesqueshop.com";
+const ADMIN_PASSWORD = "PesqueAdmin123!";
+const SESSION_KEY = "pesque-shop-session";
+const USERS_KEY = "pesque-shop-customers";
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+interface CustomerAccount {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email: string;
+  password: string;
+}
+
+interface SessionState {
+  mode: "customer" | "admin";
+  email: string;
+}
+
+interface AccountProps {
+  content: SiteContent;
+  onChangeContent: (content: SiteContent) => void;
+  onResetContent: () => void;
+}
+
+export default function Account({ content, onChangeContent, onResetContent }: AccountProps) {
+  const [session, setSession] = useState<SessionState | null>(null);
+  const [error, setError] = useState("");
+  const [customers, setCustomers] = useState<CustomerAccount[]>([]);
+  const [loginData, setLoginData] = useState({ email: "", password: "" });
+  const [registerData, setRegisterData] = useState<CustomerAccount>({ firstName: "", lastName: "", phone: "", email: "", password: "" });
+
+  useEffect(() => {
+    const storedUsers = window.localStorage.getItem(USERS_KEY);
+    const storedSession = window.sessionStorage.getItem(SESSION_KEY);
+    if (storedUsers) setCustomers(JSON.parse(storedUsers) as CustomerAccount[]);
+    if (storedSession) setSession(JSON.parse(storedSession) as SessionState);
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(USERS_KEY, JSON.stringify(customers));
+  }, [customers]);
+
+  const currentCustomer = useMemo(() => customers.find((customer) => customer.email === session?.email), [customers, session]);
+
+  const saveSession = (nextSession: SessionState) => {
+    setSession(nextSession);
+    window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(nextSession));
+  };
+
+  const handleLogin = (event: React.FormEvent) => {
+    event.preventDefault();
+    const email = loginData.email.trim().toLowerCase();
+
+    if (email === ADMIN_EMAIL && loginData.password === ADMIN_PASSWORD) {
+      saveSession({ mode: "admin", email });
+      setError("");
+      return;
+    }
+
+    const existingCustomer = customers.find((customer) => customer.email.toLowerCase() === email && customer.password === loginData.password);
+    if (!existingCustomer) {
+      setError("Nao encontramos uma conta com esses dados.");
+      return;
+    }
+
+    saveSession({ mode: "customer", email: existingCustomer.email });
+    setError("");
+  };
+
+  const handleRegister = (event: React.FormEvent) => {
+    event.preventDefault();
+    const email = registerData.email.trim().toLowerCase();
+    if (customers.some((customer) => customer.email.toLowerCase() === email)) {
+      setError("Ja existe um cadastro com esse e-mail.");
+      return;
+    }
+
+    const nextCustomer = { ...registerData, email };
+    setCustomers((current) => [...current, nextCustomer]);
+    saveSession({ mode: "customer", email });
+    setRegisterData({ firstName: "", lastName: "", phone: "", email: "", password: "" });
+    setError("");
   };
 
   const handleLogout = () => {
-    setIsLoggedIn(false);
+    setSession(null);
+    window.sessionStorage.removeItem(SESSION_KEY);
   };
 
   return (
     <div className="py-16 bg-paper min-h-screen">
-      <div className="max-w-4xl mx-auto px-4">
+      <div className="max-w-6xl mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-4xl font-black text-primary uppercase tracking-tighter italic">MINHA CONTA</h2>
-          <p className="text-ink mt-4 font-bold uppercase text-xs tracking-widest opacity-60">Gerencie seus dados e acompanhe seus pedidos.</p>
+          <p className="text-ink mt-4 font-bold uppercase text-xs tracking-widest opacity-60">Cadastro do cliente com acesso interno oculto para administracao.</p>
         </div>
 
-        {!isLoggedIn ? (
+        {!session ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-            {/* Login Section */}
-            <motion.div 
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="bg-white p-8 rounded-3xl shadow-xl border border-primary/5"
-            >
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="bg-white p-8 rounded-3xl shadow-xl border border-primary/5">
               <div className="flex items-center gap-3 mb-8 text-primary">
                 <Lock size={24} />
-                <h3 className="font-black uppercase tracking-widest text-sm">Já sou cliente</h3>
+                <h3 className="font-black uppercase tracking-widest text-sm">Entrar</h3>
               </div>
-              
+
               <form onSubmit={handleLogin} className="space-y-6">
-                <div>
-                  <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest">E-mail</label>
-                  <div className="relative">
-                    <input 
-                      type="email" 
-                      required
-                      className="w-full border border-primary/5 bg-primary/5 p-4 pl-12 rounded-2xl text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
-                      placeholder="seu@email.com" 
-                      value={formData.email}
-                      onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    />
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" size={18} />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest">Senha</label>
-                  <div className="relative">
-                    <input 
-                      type="password" 
-                      required
-                      className="w-full border border-primary/5 bg-primary/5 p-4 pl-12 rounded-2xl text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
-                      placeholder="******" 
-                      value={formData.password}
-                      onChange={(e) => setFormData({...formData, password: e.target.value})}
-                    />
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" size={18} />
-                  </div>
-                </div>
-                <button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white font-black uppercase py-4 rounded-2xl shadow-lg transition-all tracking-widest text-xs transform active:scale-95">
-                  Entrar
+                <input type="email" required value={loginData.email} onChange={(event) => setLoginData((current) => ({ ...current, email: event.target.value }))} className="w-full border border-primary/5 bg-primary/5 p-4 rounded-2xl text-sm focus:ring-2 focus:ring-primary outline-none transition-all font-bold" placeholder="seu@email.com" />
+                <input type="password" required value={loginData.password} onChange={(event) => setLoginData((current) => ({ ...current, password: event.target.value }))} className="w-full border border-primary/5 bg-primary/5 p-4 rounded-2xl text-sm focus:ring-2 focus:ring-primary outline-none transition-all font-bold" placeholder="Senha" />
+
+                <button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white font-black uppercase py-4 rounded-2xl shadow-lg transition-all tracking-widest text-xs transform active:scale-95">Entrar</button>
+
+                <button type="button" disabled={!GOOGLE_CLIENT_ID} className="w-full bg-white border border-primary/10 text-primary font-black uppercase py-4 rounded-2xl shadow-sm transition-all tracking-widest text-xs disabled:opacity-50 disabled:cursor-not-allowed">
+                  Entrar com Google
                 </button>
-                <div className="text-center">
-                  <button type="button" className="text-[10px] text-secondary font-black uppercase tracking-widest hover:text-ink transition-colors">Esqueci minha senha</button>
-                </div>
+                {!GOOGLE_CLIENT_ID && <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest">Configure `VITE_GOOGLE_CLIENT_ID` para ativar o login Google real.</p>}
               </form>
             </motion.div>
 
-            {/* Register Section */}
-            <motion.div 
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="bg-white p-8 rounded-3xl shadow-xl border border-primary/5"
-            >
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="bg-white p-8 rounded-3xl shadow-xl border border-primary/5">
               <div className="flex items-center gap-3 mb-8 text-primary">
                 <UserPlus size={24} />
-                <h3 className="font-black uppercase tracking-widest text-sm">Criar nova conta</h3>
+                <h3 className="font-black uppercase tracking-widest text-sm">Criar conta</h3>
               </div>
-              
-              <form onSubmit={handleLogin} className="space-y-6">
+
+              <form onSubmit={handleRegister} className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest">Nome</label>
-                    <input 
-                      type="text" 
-                      required
-                      className="w-full border border-primary/5 bg-primary/5 p-4 rounded-2xl text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
-                      placeholder="Nome" 
-                      value={formData.firstName}
-                      onChange={(e) => setFormData({...formData, firstName: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest">Sobrenome</label>
-                    <input 
-                      type="text" 
-                      required
-                      className="w-full border border-primary/5 bg-primary/5 p-4 rounded-2xl text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
-                      placeholder="Sobrenome" 
-                      value={formData.lastName}
-                      onChange={(e) => setFormData({...formData, lastName: e.target.value})}
-                    />
-                  </div>
+                  <input type="text" required value={registerData.firstName} onChange={(event) => setRegisterData((current) => ({ ...current, firstName: event.target.value }))} className="w-full border border-primary/5 bg-primary/5 p-4 rounded-2xl text-sm focus:ring-2 focus:ring-primary outline-none transition-all font-bold" placeholder="Nome" />
+                  <input type="text" required value={registerData.lastName} onChange={(event) => setRegisterData((current) => ({ ...current, lastName: event.target.value }))} className="w-full border border-primary/5 bg-primary/5 p-4 rounded-2xl text-sm focus:ring-2 focus:ring-primary outline-none transition-all font-bold" placeholder="Sobrenome" />
                 </div>
-                <div>
-                  <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest">Telefone</label>
-                  <div className="relative">
-                    <input 
-                      type="tel" 
-                      required
-                      className="w-full border border-primary/5 bg-primary/5 p-4 pl-12 rounded-2xl text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
-                      placeholder="(00) 00000-0000" 
-                      value={formData.phone}
-                      onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                    />
-                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" size={18} />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest">E-mail</label>
-                  <div className="relative">
-                    <input 
-                      type="email" 
-                      required
-                      className="w-full border border-primary/5 bg-primary/5 p-4 pl-12 rounded-2xl text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
-                      placeholder="seu@email.com" 
-                      value={formData.email}
-                      onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    />
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" size={18} />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest">Senha</label>
-                  <div className="relative">
-                    <input 
-                      type="password" 
-                      required
-                      className="w-full border border-primary/5 bg-primary/5 p-4 pl-12 rounded-2xl text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
-                      placeholder="******" 
-                      value={formData.password}
-                      onChange={(e) => setFormData({...formData, password: e.target.value})}
-                    />
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" size={18} />
-                  </div>
-                </div>
-                <button type="submit" className="w-full bg-secondary hover:bg-ink text-white font-black uppercase py-4 rounded-2xl shadow-lg transition-all tracking-widest text-xs transform active:scale-95">
-                  Criar Conta
-                </button>
+                <input type="tel" required value={registerData.phone} onChange={(event) => setRegisterData((current) => ({ ...current, phone: event.target.value }))} className="w-full border border-primary/5 bg-primary/5 p-4 rounded-2xl text-sm focus:ring-2 focus:ring-primary outline-none transition-all font-bold" placeholder="(00) 00000-0000" />
+                <input type="email" required value={registerData.email} onChange={(event) => setRegisterData((current) => ({ ...current, email: event.target.value }))} className="w-full border border-primary/5 bg-primary/5 p-4 rounded-2xl text-sm focus:ring-2 focus:ring-primary outline-none transition-all font-bold" placeholder="seu@email.com" />
+                <input type="password" required value={registerData.password} onChange={(event) => setRegisterData((current) => ({ ...current, password: event.target.value }))} className="w-full border border-primary/5 bg-primary/5 p-4 rounded-2xl text-sm focus:ring-2 focus:ring-primary outline-none transition-all font-bold" placeholder="Senha" />
+                <button type="submit" className="w-full bg-secondary hover:bg-ink text-white font-black uppercase py-4 rounded-2xl shadow-lg transition-all tracking-widest text-xs transform active:scale-95">Criar Conta</button>
               </form>
             </motion.div>
+
+            {error && <div className="md:col-span-2 text-center text-accent font-black uppercase text-[10px] tracking-widest">{error}</div>}
           </div>
-        ) : (
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white p-8 rounded-3xl shadow-xl border border-primary/5"
-          >
-            <div className="flex justify-between items-center mb-10 border-b border-primary/5 pb-6">
-              <h3 className="text-2xl font-black text-primary uppercase tracking-tighter italic">Seus Dados</h3>
-              <button 
-                onClick={handleLogout}
-                className="text-secondary font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:text-ink transition-colors"
-              >
-                <LogOut size={18} />
-                Sair
-              </button>
+        ) : session.mode === "admin" ? (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
+            <div className="bg-white p-6 rounded-3xl shadow-xl border border-primary/5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-2xl font-black text-primary uppercase tracking-tighter italic">Painel do Administrador</h3>
+                <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mt-2">Login oculto detectado automaticamente pelas credenciais.</p>
+              </div>
+              <button onClick={handleLogout} className="text-secondary font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:text-ink transition-colors"><LogOut size={18} />Sair</button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-              <div className="space-y-8">
-                <div className="flex items-center gap-6 p-6 bg-primary/5 rounded-3xl border border-primary/5 shadow-inner">
-                  <div className="bg-white p-3 rounded-2xl shadow-md">
-                    <User className="text-primary" size={24} />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Nome Completo</p>
-                    <p className="text-xl font-black text-ink tracking-tight">{formData.firstName} {formData.lastName}</p>
-                  </div>
-                </div>
+            <AdminPanel content={content} onChange={onChangeContent} onReset={onResetContent} />
+          </motion.div>
+        ) : (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white p-8 rounded-3xl shadow-xl border border-primary/5">
+            <div className="flex justify-between items-center mb-10 border-b border-primary/5 pb-6">
+              <h3 className="text-2xl font-black text-primary uppercase tracking-tighter italic">Seus Dados</h3>
+              <button onClick={handleLogout} className="text-secondary font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:text-ink transition-colors"><LogOut size={18} />Sair</button>
+            </div>
 
-                <div className="flex items-center gap-6 p-6 bg-primary/5 rounded-3xl border border-primary/5 shadow-inner">
-                  <div className="bg-white p-3 rounded-2xl shadow-md">
-                    <Mail className="text-primary" size={24} />
-                  </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-6">
+                <div className="flex items-center gap-4 p-5 bg-primary/5 rounded-3xl border border-primary/5">
+                  <Mail className="text-primary" />
                   <div>
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">E-mail</p>
-                    <p className="text-xl font-black text-ink tracking-tight">{formData.email}</p>
+                    <p className="text-lg font-black text-ink">{currentCustomer?.email}</p>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-6 p-6 bg-primary/5 rounded-3xl border border-primary/5 shadow-inner">
-                  <div className="bg-white p-3 rounded-2xl shadow-md">
-                    <Phone className="text-primary" size={24} />
-                  </div>
+                <div className="flex items-center gap-4 p-5 bg-primary/5 rounded-3xl border border-primary/5">
+                  <Phone className="text-primary" />
                   <div>
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Telefone</p>
-                    <p className="text-xl font-black text-ink tracking-tight">{formData.phone}</p>
+                    <p className="text-lg font-black text-ink">{currentCustomer?.phone}</p>
                   </div>
                 </div>
               </div>
-
-              <div className="space-y-8">
-                <h4 className="text-xs font-black text-primary uppercase tracking-widest border-b border-primary/5 pb-4">Segurança</h4>
-                <div className="flex items-center gap-6 p-6 bg-gray-50/50 rounded-3xl border border-gray-100 shadow-inner">
-                  <div className="bg-white p-3 rounded-2xl shadow-md">
-                    <Lock className="text-gray-300" size={24} />
-                  </div>
+              <div className="space-y-6">
+                <div className="flex items-center gap-4 p-5 bg-primary/5 rounded-3xl border border-primary/5">
+                  <ShieldCheck className="text-primary" />
                   <div>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Senha</p>
-                    <p className="text-xl font-black text-gray-300 tracking-widest">••••••••••••</p>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Cliente</p>
+                    <p className="text-lg font-black text-ink">{currentCustomer?.firstName} {currentCustomer?.lastName}</p>
                   </div>
                 </div>
-                <button className="w-full bg-primary/5 text-primary py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-primary/10 transition-all flex items-center justify-center gap-3 text-xs shadow-md transform active:scale-95">
-                  <Save size={20} />
-                  Alterar Senha
-                </button>
+                <div className="bg-primary/5 rounded-3xl p-5 border border-primary/5">
+                  <p className="text-[10px] font-black text-primary uppercase tracking-widest">Login Google</p>
+                  <p className="text-sm font-bold text-ink mt-2">{GOOGLE_CLIENT_ID ? "Pronto para integrar com a chave do Google." : "Painel preparado, faltando configurar a chave do Google."}</p>
+                </div>
               </div>
             </div>
           </motion.div>

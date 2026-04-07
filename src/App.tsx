@@ -20,16 +20,9 @@ import Header from "./components/Header";
 import Hero from "./components/Hero";
 import OrderStatus from "./components/OrderStatus";
 import Returns from "./components/Returns";
-import {
-  acessoriosProducts,
-  allProducts,
-  iscasProducts,
-  lancamentosProducts,
-  linhasProducts,
-  molinetesProducts,
-  varasProducts,
-} from "./data/products";
+import { acessoriosProducts, allProducts, iscasProducts, lancamentosProducts, linhasProducts, molinetesProducts, varasProducts } from "./data/products";
 import { useCart } from "./hooks/useCart";
+import { useSiteContent } from "./hooks/useSiteContent";
 import AboutPage from "./pages/AboutPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import SearchResultsPage from "./pages/SearchResultsPage";
@@ -44,21 +37,34 @@ export default function App() {
   const [activeSubcategory, setActiveSubcategory] = useState<string | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState("");
   const cart = useCart();
+  const siteContent = useSiteContent();
+
+  const productsByPage = useMemo(() => {
+    const customProducts = siteContent.content.customProducts;
+    return {
+      varas: [...varasProducts, ...customProducts.filter((product) => product.mainCategory === "varas")],
+      molinetes: [...molinetesProducts, ...customProducts.filter((product) => product.mainCategory === "molinetes")],
+      iscas: [...iscasProducts, ...customProducts.filter((product) => product.mainCategory === "iscas")],
+      linhas: [...linhasProducts, ...customProducts.filter((product) => product.mainCategory === "linhas")],
+      acessorios: [...acessoriosProducts, ...customProducts.filter((product) => product.mainCategory === "acessorios")],
+    };
+  }, [siteContent.content.customProducts]);
+
+  const mergedProducts = useMemo(() => [
+    ...productsByPage.varas,
+    ...productsByPage.molinetes,
+    ...productsByPage.iscas,
+    ...productsByPage.linhas,
+    ...productsByPage.acessorios,
+  ], [productsByPage]);
+
+  const premiumProducts = useMemo(() => [...mergedProducts].sort((a, b) => b.price - a.price).slice(0, Math.max(8, lancamentosProducts.length)), [mergedProducts]);
 
   const filteredProducts = useMemo(() => {
-    if (!searchQuery) {
-      return [];
-    }
-
+    if (!searchQuery) return [];
     const normalizedQuery = searchQuery.toLowerCase();
-
-    return allProducts.filter(
-      (product) =>
-        product.name.toLowerCase().includes(normalizedQuery) ||
-        product.category.toLowerCase().includes(normalizedQuery) ||
-        product.thickness?.toLowerCase().includes(normalizedQuery),
-    );
-  }, [searchQuery]);
+    return mergedProducts.filter((product) => product.name.toLowerCase().includes(normalizedQuery) || product.category.toLowerCase().includes(normalizedQuery) || product.thickness?.toLowerCase().includes(normalizedQuery));
+  }, [mergedProducts, searchQuery]);
 
   const navigate = (page: PageType, subcategory?: string) => {
     setCurrentPage(page);
@@ -77,30 +83,30 @@ export default function App() {
       case "home":
         return (
           <>
-            <Hero onNavigate={navigate} onAddToCart={cart.addItem} />
+            <Hero content={siteContent.content.hero} onNavigate={navigate} />
             <Features />
-            <DailyOffers onAddToCart={cart.addItem} />
-            <BestSellers onAddToCart={cart.addItem} onNavigate={navigate} />
+            <DailyOffers offers={siteContent.content.offers} onAddToCart={cart.addItem} onNavigate={navigate} />
+            <BestSellers items={siteContent.content.bestSellers} onAddToCart={cart.addItem} onNavigate={navigate} />
           </>
         );
       case "register":
-        return <Account />;
+        return <Account content={siteContent.content} onChangeContent={siteContent.updateContent} onResetContent={siteContent.resetContent} />;
       case "varas":
-        return <CategoryPage title="Varas de Pesca" products={varasProducts} activeSubcategory={activeSubcategory} onAddToCart={cart.addItem} />;
+        return <CategoryPage title="Varas de Pesca" products={productsByPage.varas} activeSubcategory={activeSubcategory} onAddToCart={cart.addItem} />;
       case "molinetes":
-        return <CategoryPage title="Molinetes e Carretilhas" products={molinetesProducts} activeSubcategory={activeSubcategory} onAddToCart={cart.addItem} />;
+        return <CategoryPage title="Molinetes e Carretilhas" products={productsByPage.molinetes} activeSubcategory={activeSubcategory} onAddToCart={cart.addItem} />;
       case "iscas":
-        return <CategoryPage title="Iscas Artificiais" products={iscasProducts} activeSubcategory={activeSubcategory} onAddToCart={cart.addItem} />;
+        return <CategoryPage title="Iscas Artificiais" products={productsByPage.iscas} activeSubcategory={activeSubcategory} onAddToCart={cart.addItem} />;
       case "linhas":
-        return <CategoryPage title="Linhas de Pesca" products={linhasProducts} activeSubcategory={activeSubcategory} onAddToCart={cart.addItem} />;
+        return <CategoryPage title="Linhas de Pesca" products={productsByPage.linhas} activeSubcategory={activeSubcategory} onAddToCart={cart.addItem} />;
       case "acessorios":
-        return <CategoryPage title="AcessÃ³rios" products={acessoriosProducts} activeSubcategory={activeSubcategory} onAddToCart={cart.addItem} />;
+        return <CategoryPage title="Acessorios" products={productsByPage.acessorios} activeSubcategory={activeSubcategory} onAddToCart={cart.addItem} />;
       case "ofertas":
-        return <DailyOffers onAddToCart={cart.addItem} />;
+        return <DailyOffers offers={siteContent.content.offers} onAddToCart={cart.addItem} onNavigate={navigate} />;
       case "catalogo":
-        return <CategoryPage title="CatÃ¡logo Completo" products={allProducts} onAddToCart={cart.addItem} />;
+        return <CategoryPage title="Catalogo Completo" products={[...allProducts, ...siteContent.content.customProducts]} onAddToCart={cart.addItem} />;
       case "lancamentos":
-        return <CategoryPage title="LanÃ§amentos & Premium" products={lancamentosProducts} onAddToCart={cart.addItem} />;
+        return <CategoryPage title="Lancamentos & Premium" products={premiumProducts} onAddToCart={cart.addItem} />;
       case "sobre":
         return <AboutPage />;
       case "privacidade":
@@ -114,14 +120,7 @@ export default function App() {
       case "status":
         return <OrderStatus />;
       case "search":
-        return (
-          <SearchResultsPage
-            products={filteredProducts}
-            query={searchQuery}
-            onAddToCart={cart.addItem}
-            onBackHome={() => navigate("home")}
-          />
-        );
+        return <SearchResultsPage products={filteredProducts} query={searchQuery} onAddToCart={cart.addItem} onBackHome={() => navigate("home")} />;
       default:
         return null;
     }
@@ -129,39 +128,13 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-paper flex flex-col text-ink">
-      <Header
-        onNavigate={navigate}
-        currentPage={currentPage}
-        cartCount={cart.count}
-        onOpenCart={cart.open}
-        onSearch={handleSearch}
-      />
-
+      <Header onNavigate={navigate} currentPage={currentPage} cartCount={cart.count} onOpenCart={cart.open} onSearch={handleSearch} />
       <main className="flex-1">{renderCurrentPage()}</main>
-
       <Footer onNavigate={navigate} />
-
-      {cart.isOpen && (
-        <Cart
-          items={cart.items}
-          onUpdateQuantity={cart.updateQuantity}
-          onRemoveItem={cart.removeItem}
-          onClose={cart.close}
-        />
-      )}
-
-      <motion.button
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-        onClick={openWhatsApp}
-        className="fixed bottom-8 right-8 z-[90] bg-[#25D366] text-white p-5 rounded-full shadow-[0_10px_30px_rgba(37,211,102,0.4)] hover:bg-[#128C7E] transition-all group"
-      >
+      {cart.isOpen && <Cart items={cart.items} onUpdateQuantity={cart.updateQuantity} onRemoveItem={cart.removeItem} onClose={cart.close} />}
+      <motion.button initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={openWhatsApp} className="fixed bottom-8 right-8 z-[90] bg-[#25D366] text-white p-5 rounded-full shadow-[0_10px_30px_rgba(37,211,102,0.4)] hover:bg-[#128C7E] transition-all group">
         <MessageCircle size={32} />
-        <span className="absolute right-full mr-4 top-1/2 -translate-y-1/2 bg-white text-primary px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none border border-primary/5">
-          Fale Conosco
-        </span>
+        <span className="absolute right-full mr-4 top-1/2 -translate-y-1/2 bg-white text-primary px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none border border-primary/5">Fale Conosco</span>
       </motion.button>
     </div>
   );
