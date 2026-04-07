@@ -2,12 +2,11 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Search, ShoppingCart, User, Menu, Truck, ShieldCheck, MessageCircle, ChevronDown } from "lucide-react";
 import { cn } from "@/src/lib/utils";
-
-export type CategoryType = "home" | "register" | "varas" | "molinetes" | "iscas" | "linhas" | "acessorios";
+import type { CategoryType, PageType } from "../types/navigation";
 
 interface HeaderProps {
-  onNavigate: (page: any, subcategory?: string) => void;
-  currentPage: string;
+  onNavigate: (page: PageType, subcategory?: string) => void;
+  currentPage: PageType;
   cartCount: number;
   onOpenCart: () => void;
   onSearch: (query: string) => void;

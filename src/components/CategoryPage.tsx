@@ -2,16 +2,7 @@ import { motion } from "motion/react";
 import { Filter, X } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/src/lib/utils";
-
-interface Product {
-  id: number;
-  name: string;
-  price: number;
-  image: string;
-  discount?: string;
-  thickness?: string;
-  category?: string;
-}
+import type { Product } from "../types/shop";
 
 interface CategoryPageProps {
   title: string;

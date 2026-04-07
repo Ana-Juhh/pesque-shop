@@ -1,14 +1,7 @@
 import { X, Plus, Minus, CreditCard, QrCode, FileText, ShoppingBag, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-
-interface CartItem {
-  id: number;
-  name: string;
-  price: number;
-  image: string;
-  quantity: number;
-}
+import type { CartItem } from "../types/shop";
 
 interface CartProps {
   items: CartItem[];
