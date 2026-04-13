@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { Lock, LogOut, Mail, Phone, ShieldCheck, UserPlus } from "lucide-react";
 
@@ -24,10 +24,28 @@ interface SessionState {
   email: string;
 }
 
+interface GoogleCredentialPayload {
+  email?: string;
+  given_name?: string;
+  family_name?: string;
+  name?: string;
+}
+
 interface AccountProps {
   content: SiteContent;
   onChangeContent: (content: SiteContent) => void;
   onResetContent: () => void;
+}
+
+function decodeGoogleCredential(token: string): GoogleCredentialPayload | null {
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return null;
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(window.atob(normalized)) as GoogleCredentialPayload;
+  } catch {
+    return null;
+  }
 }
 
 export default function Account({ content, onChangeContent, onResetContent }: AccountProps) {
@@ -36,6 +54,7 @@ export default function Account({ content, onChangeContent, onResetContent }: Ac
   const [customers, setCustomers] = useState<CustomerAccount[]>([]);
   const [loginData, setLoginData] = useState({ email: "", password: "" });
   const [registerData, setRegisterData] = useState<CustomerAccount>({ firstName: "", lastName: "", phone: "", email: "", password: "" });
+  const googleButtonRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const storedUsers = window.localStorage.getItem(USERS_KEY);
@@ -54,6 +73,83 @@ export default function Account({ content, onChangeContent, onResetContent }: Ac
     setSession(nextSession);
     window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(nextSession));
   };
+
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID || session || !googleButtonRef.current) return;
+
+    const initializeGoogle = () => {
+      if (!window.google?.accounts?.id || !googleButtonRef.current) return;
+
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: ({ credential }) => {
+          const payload = decodeGoogleCredential(credential);
+          const email = payload?.email?.toLowerCase();
+
+          if (!email) {
+            setError("Nao foi possivel ler os dados da conta Google.");
+            return;
+          }
+
+          if (email === ADMIN_EMAIL) {
+            saveSession({ mode: "admin", email });
+            setError("");
+            return;
+          }
+
+          setCustomers((currentCustomers) => {
+            const existing = currentCustomers.find((customer) => customer.email.toLowerCase() === email);
+            if (existing) return currentCustomers;
+
+            const fullName = payload?.name?.trim().split(" ") ?? [];
+            const givenName = payload?.given_name || fullName[0] || "Cliente";
+            const familyName = payload?.family_name || fullName.slice(1).join(" ");
+
+            return [
+              ...currentCustomers,
+              {
+                firstName: givenName,
+                lastName: familyName,
+                phone: "",
+                email,
+                password: "",
+              },
+            ];
+          });
+
+          saveSession({ mode: "customer", email });
+          setError("");
+        },
+      });
+
+      googleButtonRef.current.innerHTML = "";
+      window.google.accounts.id.renderButton(googleButtonRef.current, {
+        theme: "outline",
+        size: "large",
+        width: 320,
+        text: "signin_with",
+        shape: "pill",
+      });
+    };
+
+    if (window.google?.accounts?.id) {
+      initializeGoogle();
+      return;
+    }
+
+    const existingScript = document.querySelector<HTMLScriptElement>('script[src="https://accounts.google.com/gsi/client"]');
+    if (existingScript) {
+      existingScript.addEventListener("load", initializeGoogle, { once: true });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.onload = initializeGoogle;
+    document.head.appendChild(script);
+  }, [session]);
 
   const handleLogin = (event: React.FormEvent) => {
     event.preventDefault();
@@ -117,10 +213,10 @@ export default function Account({ content, onChangeContent, onResetContent }: Ac
 
                 <button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white font-black uppercase py-4 rounded-2xl shadow-lg transition-all tracking-widest text-xs transform active:scale-95">Entrar</button>
 
-                <button type="button" disabled={!GOOGLE_CLIENT_ID} className="w-full bg-white border border-primary/10 text-primary font-black uppercase py-4 rounded-2xl shadow-sm transition-all tracking-widest text-xs disabled:opacity-50 disabled:cursor-not-allowed">
-                  Entrar com Google
-                </button>
-                {!GOOGLE_CLIENT_ID && <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest">Configure `VITE_GOOGLE_CLIENT_ID` para ativar o login Google real.</p>}
+                <div className="space-y-3">
+                  <div ref={googleButtonRef} className="min-h-[44px] flex items-center" />
+                  {!GOOGLE_CLIENT_ID && <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest">Configure `VITE_GOOGLE_CLIENT_ID` para ativar o login Google real.</p>}
+                </div>
               </form>
             </motion.div>
 
@@ -176,7 +272,7 @@ export default function Account({ content, onChangeContent, onResetContent }: Ac
                   <Phone className="text-primary" />
                   <div>
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Telefone</p>
-                    <p className="text-lg font-black text-ink">{currentCustomer?.phone}</p>
+                    <p className="text-lg font-black text-ink">{currentCustomer?.phone || "Nao informado"}</p>
                   </div>
                 </div>
               </div>
@@ -190,7 +286,7 @@ export default function Account({ content, onChangeContent, onResetContent }: Ac
                 </div>
                 <div className="bg-primary/5 rounded-3xl p-5 border border-primary/5">
                   <p className="text-[10px] font-black text-primary uppercase tracking-widest">Login Google</p>
-                  <p className="text-sm font-bold text-ink mt-2">{GOOGLE_CLIENT_ID ? "Pronto para integrar com a chave do Google." : "Painel preparado, faltando configurar a chave do Google."}</p>
+                  <p className="text-sm font-bold text-ink mt-2">{GOOGLE_CLIENT_ID ? "Integrado ao Google Identity Services." : "Faltando configurar a chave do Google."}</p>
                 </div>
               </div>
             </div>
