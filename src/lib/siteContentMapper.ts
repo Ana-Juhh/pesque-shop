@@ -1,27 +1,15 @@
-import type { SiteContent } from "../types/siteContent";
+import { defaultSiteContent } from "../data/siteContent";
 
-type SiteContentRecord = {
-  id: string;
-  hero?: any;
-  offers?: any[];
-  bestSellers?: any[];
-  customProducts?: any[];
-};
+export function mapSiteContent(record: any) {
+  if (!record) return defaultSiteContent;
 
-export function mapRecordToSiteContent(record: SiteContentRecord, fallback: SiteContent): SiteContent {
   return {
-    hero: record.hero ?? fallback.hero,
-    offers: Array.isArray(record.offers) ? record.offers : fallback.offers,
-    bestSellers: Array.isArray(record.bestSellers) ? record.bestSellers : fallback.bestSellers,
-    customProducts: Array.isArray(record.customProducts) ? record.customProducts : fallback.customProducts,
-  };
-}
+    hero: record.hero ?? defaultSiteContent.hero,
+    offers: record.offers ?? defaultSiteContent.offers,
+    bestSellers: record.bestSellers ?? defaultSiteContent.bestSellers,
+    customProducts: record.customProducts ?? defaultSiteContent.customProducts,
 
-export function mapSiteContentToRecord(content: SiteContent) {
-  return {
-    hero: content.hero,
-    offers: content.offers,
-    bestSellers: content.bestSellers,
-    customProducts: content.customProducts,
+    // 🔥 AQUI ESTAVA FALTANDO
+    pages: record.pages ?? defaultSiteContent.pages,
   };
 }
