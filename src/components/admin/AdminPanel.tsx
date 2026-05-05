@@ -1,6 +1,7 @@
 import { ChangeEvent, useMemo, useState } from "react";
 import {
   Boxes,
+  FileText,
   Image as ImageIcon,
   LayoutTemplate,
   Plus,
@@ -28,7 +29,7 @@ interface AdminPanelProps {
   onReset: () => void;
 }
 
-type TabKey = "hero" | "offers" | "bestSellers" | "customProducts";
+type TabKey = "hero" | "offers" | "bestSellers" | "customProducts" | "pages";
 
 const productCategories = menuItems.filter(
   (item) => item.id !== "home" && item.id !== "ofertas"
@@ -911,6 +912,141 @@ function CustomProductsEditor({
   );
 }
 
+const editablePages = [
+  { key: "sobre", label: "Sobre" },
+  { key: "privacidade", label: "Privacidade" },
+  { key: "contato", label: "Contato" },
+  { key: "faq", label: "FAQ" },
+  { key: "trocas", label: "Trocas" },
+  { key: "status", label: "Status do Pedido" },
+  { key: "termos", label: "Termos de Uso" },
+] as const;
+
+function PagesEditor({
+  content,
+  onChange,
+}: {
+  content: SiteContent;
+  onChange: (content: SiteContent) => void;
+}) {
+  const [selectedPage, setSelectedPage] =
+    useState<(typeof editablePages)[number]["key"]>("sobre");
+
+  const page =
+    content.pages?.[selectedPage] ?? {
+      title: "",
+      subtitle: "",
+      content: [],
+    };
+
+  function updatePage(nextPage: {
+    title: string;
+    subtitle: string;
+    content: string[];
+  }) {
+    onChange({
+      ...content,
+      pages: {
+        ...content.pages,
+        [selectedPage]: nextPage,
+      },
+    });
+  }
+
+  return (
+    <section className="bg-white p-6 rounded-3xl border border-primary/5 shadow-xl space-y-6">
+      <SectionHeader
+        title="Páginas do Menu"
+        description="Edite os textos das páginas institucionais do site."
+      />
+
+      <div className="flex flex-wrap gap-3">
+        {editablePages.map((item) => (
+          <button
+            key={item.key}
+            type="button"
+            onClick={() => setSelectedPage(item.key)}
+            className={[
+              "px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all",
+              selectedPage === item.key
+                ? "bg-primary text-white border-primary shadow-lg"
+                : "bg-white text-primary border-primary/10 hover:bg-primary/5",
+            ].join(" ")}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 gap-4">
+        <input
+          value={page.title}
+          onChange={(event) =>
+            updatePage({
+              ...page,
+              title: event.target.value,
+            })
+          }
+          placeholder="Título da página"
+          className="border border-primary/10 bg-primary/5 rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-primary"
+        />
+
+        <input
+          value={page.subtitle}
+          onChange={(event) =>
+            updatePage({
+              ...page,
+              subtitle: event.target.value,
+            })
+          }
+          placeholder="Subtítulo da página"
+          className="border border-primary/10 bg-primary/5 rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-primary"
+        />
+
+        <textarea
+          value={page.content.join("\n")}
+          onChange={(event) =>
+            updatePage({
+              ...page,
+              content: event.target.value
+                .split("\n")
+                .map((line) => line.trim())
+                .filter(Boolean),
+            })
+          }
+          rows={10}
+          placeholder="Digite os parágrafos da página. Cada linha vira um parágrafo."
+          className="border border-primary/10 bg-primary/5 rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-primary resize-none"
+        />
+      </div>
+
+      <div className="bg-primary/5 rounded-3xl border border-primary/10 p-6">
+        <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-4">
+          Preview
+        </p>
+
+        <h2 className="text-3xl font-black text-primary uppercase tracking-tighter italic">
+          {page.title || "Título da página"}
+        </h2>
+
+        <p className="text-xs font-bold uppercase tracking-widest text-ink/60 mt-2 mb-6">
+          {page.subtitle || "Subtítulo da página"}
+        </p>
+
+        <div className="space-y-4 text-sm text-ink leading-relaxed">
+          {page.content.length > 0 ? (
+            page.content.map((paragraph, index) => (
+              <p key={index}>{paragraph}</p>
+            ))
+          ) : (
+            <p className="text-ink/50">Nenhum texto cadastrado ainda.</p>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function AdminPanel({
   content,
   onChange,
@@ -941,11 +1077,6 @@ export default function AdminPanel({
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <div className="bg-primary text-white px-5 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-3 shadow-lg">
-              <Save size={16} />
-              Salvando no PocketBase
-            </div>
-
             <button
               type="button"
               onClick={onReset}
@@ -984,6 +1115,12 @@ export default function AdminPanel({
             label="Categorias"
             count={tabStats.customProducts}
             onClick={() => setActiveTab("customProducts")}
+          />
+          <TabButton
+            active={activeTab === "pages"}
+            icon={<FileText size={16} />}
+            label="Páginas"
+            onClick={() => setActiveTab("pages")}
           />
         </div>
       </section>
@@ -1032,7 +1169,11 @@ export default function AdminPanel({
             onChange({ ...content, customProducts: products })
           }
         />
+
+      {activeTab === "pages" ? (
+        <PagesEditor content={content} onChange={onChange} />
       ) : null}
+            ) : null}
     </div>
   );
 }

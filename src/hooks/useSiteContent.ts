@@ -12,7 +12,9 @@ export function useSiteContent() {
   useEffect(() => {
     async function loadContent() {
       try {
-        const result = await pb.collection(COLLECTION).getList(1, 1);
+        const result = await pb.collection(COLLECTION).getList(1, 1, {
+        sort: "-updated",
+      });;
 
         if (result.items.length > 0) {
           const record = result.items[0];
@@ -43,18 +45,26 @@ export function useSiteContent() {
     loadContent();
   }, []);
 
-  async function updateContent(newContent: typeof defaultSiteContent) {
-    setContent(newContent);
+async function updateContent(newContent: typeof defaultSiteContent) {
+  if (!recordId) return false;
 
-    if (!recordId) return;
+  try {
+    const saved = await pb.collection(COLLECTION).update(recordId, newContent);
 
-    try {
-      await pb.collection(COLLECTION).update(recordId, newContent);
-      console.log("Salvo no PocketBase ✅");
-    } catch (error) {
-      console.error("Erro ao salvar conteúdo:", error);
-    }
+    setContent({
+      hero: saved.hero || defaultSiteContent.hero,
+      offers: saved.offers || defaultSiteContent.offers,
+      bestSellers: saved.bestSellers || defaultSiteContent.bestSellers,
+      customProducts: saved.customProducts || defaultSiteContent.customProducts,
+      pages: saved.pages || defaultSiteContent.pages,
+    });
+
+    return true;
+  } catch (error) {
+    console.error("Erro ao salvar conteúdo:", error);
+    return false;
   }
+}
 
   async function resetContent() {
     setContent(defaultSiteContent);
