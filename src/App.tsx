@@ -106,6 +106,15 @@ export default function App() {
     );
   }, [mergedProducts, searchQuery]);
 
+  // Check loading state AFTER all hooks
+  if (siteContent.loading || !siteContent.content) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-paper text-primary font-black uppercase tracking-widest">
+        Carregando site...
+      </div>
+    );
+  }
+
   const navigate = (page: PageType, sub?: string) => {
     setCurrentPage(page);
     setActiveSubcategory(sub);
@@ -251,6 +260,9 @@ export default function App() {
 
       case "status":
         return <StaticContentPage page={siteContent.content.pages.status} />;
+
+      case "termos":
+        return <StaticContentPage page={siteContent.content.pages.termos} />;
 
       default:
         return null;

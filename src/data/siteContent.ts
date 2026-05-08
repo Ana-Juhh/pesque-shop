@@ -192,5 +192,15 @@ export const defaultSiteContent = {
         "Nosso compromisso e manter voce informado durante todo o processo de compra.",
       ],
     },
+
+    termos: {
+      title: "Termos e Condicoes",
+      subtitle: "Leia os termos de uso da Pesque Shop",
+      content: [
+        "Ao utilizar a Pesque Shop, voce concorda com os termos e condicoes estabelecidos nesta pagina.",
+        "O usuario e responsavel por manter a confidencialidade de suas informacoes de acesso e pelas atividades realizadas em sua conta.",
+        "A Pesque Shop se reserva no direito de modificar estes termos a qualquer momento. O uso continuado do site implica na aceitacao das alteracoes.",
+      ],
+    },
   },
 };

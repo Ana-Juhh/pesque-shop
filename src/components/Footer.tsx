@@ -10,24 +10,13 @@ export default function Footer({ onNavigate }: FooterProps) {
       <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-12">
         {/* About */}
         <div>
-          <div className="flex items-center gap-3 mb-6">
-            <div className="bg-white p-1 rounded-full border-2 border-primary shadow-md">
-              <img
-                src="/img/logo.png"
-                alt="Logo"
-                className="w-18 h-18 object-contain rounded-full"
-                referrerPolicy="no-referrer"
-              />
-            </div>
-
-            <div className="flex flex-col leading-none">
-              <span className="text-2xl font-black text-secondary tracking-tighter uppercase italic drop-shadow-sm">
-                PESQUE
-              </span>
-              <span className="text-2xl font-black text-highlight tracking-tighter uppercase drop-shadow-sm">
-                SHOP
-              </span>
-            </div>
+          <div className="flex items-center gap-3 mb-2">
+            <img
+              src="/img/rodape.png"
+              alt="Logo"
+              className="w-40 h-40 object-contain"
+              referrerPolicy="no-referrer"
+            />
           </div>
 
           <p className="text-sm text-white/80 leading-relaxed font-medium">

@@ -27,11 +27,26 @@ export interface ShowcaseCard extends Product {
   targetLabel: string;
 }
 
+export interface EditablePage {
+  title: string;
+  subtitle: string;
+  content: string[];
+}
+
 export interface SiteContent {
   hero: HeroContent;
   offers: OfferCard[];
   bestSellers: ShowcaseCard[];
   customProducts: CustomCategoryProduct[];
+  pages: {
+    sobre: EditablePage;
+    privacidade: EditablePage;
+    contato: EditablePage;
+    faq: EditablePage;
+    trocas: EditablePage;
+    status: EditablePage;
+    termos: EditablePage;
+  };
 }
 
 export interface CustomCategoryProduct extends Product {

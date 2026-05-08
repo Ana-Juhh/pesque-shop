@@ -51,14 +51,6 @@ export default function Hero({ content, onNavigate }: HeroProps) {
             </div>
           </div>
 
-          <div className="mt-12 flex flex-wrap gap-4">
-            <button onClick={() => onNavigate(content.primaryButtonTarget)} className="bg-primary hover:bg-primary/80 text-white font-black uppercase px-10 py-5 rounded-2xl border-b-4 border-black/20 shadow-2xl transition-all transform hover:scale-105 active:scale-95 tracking-widest text-xs">
-              {content.primaryButtonLabel}
-            </button>
-            <button onClick={() => onNavigate(content.secondaryButtonTarget)} className="bg-white/10 hover:bg-white/20 backdrop-blur-md text-white font-black uppercase px-10 py-5 rounded-2xl border border-white/20 transition-all tracking-widest text-xs">
-              {content.secondaryButtonLabel}
-            </button>
-          </div>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 50, rotate: 10 }} animate={{ opacity: 1, y: 0, rotate: 0 }} transition={{ duration: 4, delay: 0.5, repeat: Infinity, repeatType: "reverse" }} className="absolute right-10 top-1/2 -translate-y-1/2 hidden lg:block">
@@ -69,14 +61,7 @@ export default function Hero({ content, onNavigate }: HeroProps) {
         </motion.div>
       </div>
 
-      <div className="absolute bottom-10 right-10 flex gap-4 z-20">
-        <button className="bg-white/10 hover:bg-white/30 backdrop-blur-md p-4 rounded-2xl text-white transition-all border border-white/10 group">
-          <ChevronLeft size={5} className="group-hover:-translate-x-1 transition-transform" />
-        </button>
-        <button className="bg-white/10 hover:bg-white/30 backdrop-blur-md p-4 rounded-2xl text-white transition-all border border-white/10 group">
-          <ChevronRight size={5} className="group-hover:translate-x-1 transition-transform" />
-        </button>
-      </div>
+     
 
       <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-paper to-transparent" />
     </section>

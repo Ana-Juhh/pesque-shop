@@ -65,17 +65,34 @@ export default function Account({
               Status das alterações
             </p>
 
-            <p className="text-sm font-black text-primary mt-1">
-              {saveStatus === "saving"
-                ? "Salvando alterações..."
-                : saveStatus === "saved"
-                ? "Alterações salvas com sucesso."
-                : saveStatus === "error"
-                ? "Erro ao salvar. Tente novamente."
-                : hasUnsavedChanges
-                ? "Existem alterações não salvas."
-                : "Tudo salvo."}
-            </p>
+           <p
+  className={[
+    "text-sm font-black mt-1 transition-all",
+    saveStatus === "saved"
+      ? "text-green-600"
+      : saveStatus === "error"
+      ? "text-red-500"
+      : hasUnsavedChanges
+      ? "text-yellow-600"
+      : "text-primary",
+  ].join(" ")}
+>
+  {saveStatus === "saving" && "Salvando alterações..."}
+
+  {saveStatus === "saved" &&
+    "Alterações salvas com sucesso."}
+
+  {saveStatus === "error" &&
+    "Não foi possível salvar as alterações."}
+
+  {saveStatus === "idle" &&
+    !hasUnsavedChanges &&
+    "Tudo salvo."}
+
+  {hasUnsavedChanges &&
+    saveStatus !== "saving" &&
+    "Existem alterações pendentes."}
+</p>
           </div>
 
           <div className="flex flex-wrap gap-3">

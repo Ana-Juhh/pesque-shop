@@ -18,4 +18,5 @@ export type PageType =
   | "sobre"
   | "privacidade"
   | "catalogo"
+  | "termos"
   | "lancamentos";
