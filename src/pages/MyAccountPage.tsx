@@ -38,6 +38,8 @@ const ORDER_STATUS_OPTIONS = [
   { value: "cancelado", label: "Cancelado" },
 ];
 
+const ADMIN_EMAILS = ["ju.12ferre@gmail.com"];
+
 function formatStatus(status?: string) {
   const found = ORDER_STATUS_OPTIONS.find((option) => option.value === status);
   return found?.label || status || "Aguardando pagamento";
@@ -61,9 +63,28 @@ export default function MyAccountPage({
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [updatingOrderId, setUpdatingOrderId] = useState("");
 
-  const user = pb.authStore.record as any;
+  const [user, setUser] = useState<any>(() => pb.authStore.record);
+
   const isLoggedIn = Boolean(pb.authStore.isValid && user);
-  const isAdmin = Boolean(user?.role === "admin");
+  const isAdmin = Boolean(
+    user?.role === "admin" || ADMIN_EMAILS.includes(user?.email)
+  );
+
+  useEffect(() => {
+    const unsubscribe = pb.authStore.onChange((_token, record) => {
+      setUser(record);
+      setOrders([]);
+    }, true);
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    loadOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoggedIn, user?.id, isAdmin]);
 
   function formatPrice(value = 0) {
     return value.toLocaleString("pt-BR", {
@@ -74,6 +95,7 @@ export default function MyAccountPage({
 
   function handleLogout() {
     pb.authStore.clear();
+    setUser(null);
     setOrders([]);
     onLogoutSuccess();
   }
@@ -130,11 +152,6 @@ export default function MyAccountPage({
       setUpdatingOrderId("");
     }
   }
-
-  useEffect(() => {
-    loadOrders();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoggedIn, user?.id, isAdmin]);
 
   if (!isLoggedIn) {
     return (

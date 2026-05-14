@@ -235,13 +235,47 @@ export default function App() {
   );
 
       case "register":
-        return (
-          <Account
-            content={content}
-            onChangeContent={siteContent.updateContent}
-            onResetContent={siteContent.resetContent}
-          />
-        );
+  return (
+    <>
+      <section className="bg-paper px-4 pt-8">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.3em] text-secondary">
+              Painel Admin
+            </p>
+
+            <h1 className="mt-2 text-2xl md:text-4xl font-black uppercase text-primary">
+              Gerenciamento do site
+            </h1>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={() => navigate("account")}
+              className="rounded-full bg-white border border-primary/10 px-6 py-3 text-sm font-black text-primary shadow-sm hover:bg-primary/5"
+            >
+              ← Voltar para pedidos da loja
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigate("home")}
+              className="rounded-full bg-primary px-6 py-3 text-sm font-black text-white shadow-sm hover:bg-primary/90"
+            >
+              Ver loja
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <Account
+        content={content}
+        onChangeContent={siteContent.updateContent}
+        onResetContent={siteContent.resetContent}
+      />
+    </>
+  );
 
       case "varas":
         return (
