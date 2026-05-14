@@ -12,9 +12,17 @@ interface HeaderProps {
   cartCount: number;
   onOpenCart: () => void;
   onSearch: (query: string) => void;
+  onAccountClick: () => void;
 }
 
-export default function Header({ onNavigate, currentPage, cartCount, onOpenCart, onSearch }: HeaderProps) {
+ export default function Header({
+  onNavigate,
+  currentPage,
+  cartCount,
+  onOpenCart,
+  onSearch,
+  onAccountClick,
+}: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [searchValue, setSearchValue] = useState("");
@@ -43,10 +51,10 @@ export default function Header({ onNavigate, currentPage, cartCount, onOpenCart,
               <ShieldCheck size={12} className="text-primary" />
               <span>Compra 100% Segura</span>
             </div>
-            <button onClick={() => onNavigate("register")} className="flex items-center gap-2 hover:text-secondary transition-colors group">
-              <User size={12} className="text-primary group-hover:scale-110 transition-transform" />
-              <span>Minha Conta</span>
-            </button>
+            <button onClick={onAccountClick} className="flex items-center gap-2 hover:text-secondary transition-colors group">
+            <User size={12} className="text-primary group-hover:scale-110 transition-transform" />
+            <span>Minha Conta</span>
+          </button>
           </div>
         </div>
       </div>

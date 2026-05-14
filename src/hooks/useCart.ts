@@ -12,20 +12,22 @@ export function useCart() {
 
       if (existingItem) {
         return currentItems.map((item) =>
-          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item,
+          item.id === product.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item,
         );
       }
 
       return [...currentItems, { ...product, quantity: 1 }];
     });
-
-    setIsOpen(true);
   };
 
   const updateQuantity = (id: number, delta: number) => {
     setItems((currentItems) =>
       currentItems.map((item) =>
-        item.id === id ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item,
+        item.id === id
+          ? { ...item, quantity: Math.max(1, item.quantity + delta) }
+          : item,
       ),
     );
   };

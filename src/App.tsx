@@ -9,13 +9,17 @@ import { motion } from "motion/react";
 
 import Account from "./components/Account";
 import BestSellers from "./components/BestSellers";
-import Cart from "./components/Cart";
+import { CartCheckout } from "./components/CartCheckout";
 import CategoryPage from "./components/CategoryPage";
+import ContactUs from "./components/ContactUs";
 import DailyOffers from "./components/DailyOffers";
+import FAQ from "./components/FAQ";
 import Features from "./components/Features";
 import Footer from "./components/Footer";
 import Header from "./components/Header";
 import Hero from "./components/Hero";
+import OrderStatus from "./components/OrderStatus";
+import Returns from "./components/Returns";
 
 import {
   acessoriosProducts,
@@ -29,50 +33,67 @@ import {
 
 import { useCart } from "./hooks/useCart";
 import { useSiteContent } from "./hooks/useSiteContent";
+import { pb } from "./lib/pocketbase";
 
+import AboutPage from "./pages/AboutPage";
+import LoginPage from "./pages/LoginPage";
+import MyAccountPage from "./pages/MyAccountPage";
+import PrivacyPage from "./pages/PrivacyPage";
 import SearchResultsPage from "./pages/SearchResultsPage";
-import StaticContentPage from "./pages/StaticContentPage";
 
 import type { PageType } from "./types/navigation";
+import type { Product } from "./types/shop";
+
+type AppPage = PageType | "login" | "account";
+
+const ADMIN_EMAILS = ["ia@colegiosatelite.com.br"]; // coloque aqui o e-mail admin
 
 function openWhatsApp() {
   window.open("https://wa.me/5511996492175", "_blank");
 }
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<PageType>("home");
-  const [activeSubcategory, setActiveSubcategory] = useState<string | undefined>(undefined);
+  const [currentPage, setCurrentPage] = useState<AppPage>("home");
+  const [activeSubcategory, setActiveSubcategory] = useState<string | undefined>(
+    undefined
+  );
   const [searchQuery, setSearchQuery] = useState("");
+  const [pendingProduct, setPendingProduct] = useState<Product | null>(null);
 
   const cart = useCart();
   const siteContent = useSiteContent();
 
-  const productsByPage = useMemo(() => {
-    const customProducts = siteContent.content.customProducts;
+  const content = siteContent.content;
+  const customProducts = content?.customProducts ?? [];
 
+  const productsByPage = useMemo(() => {
     return {
       varas: [
         ...varasProducts,
-        ...customProducts.filter((p) => p.mainCategory === "varas"),
+        ...customProducts.filter((product) => product.mainCategory === "varas"),
       ],
       molinetes: [
         ...molinetesProducts,
-        ...customProducts.filter((p) => p.mainCategory === "molinetes"),
+        ...customProducts.filter(
+          (product) => product.mainCategory === "molinetes"
+        ),
       ],
       iscas: [
         ...iscasProducts,
-        ...customProducts.filter((p) => p.mainCategory === "iscas"),
+        ...customProducts.filter((product) => product.mainCategory === "iscas"),
       ],
       linhas: [
         ...linhasProducts,
-        ...customProducts.filter((p) => p.mainCategory === "linhas"),
+        ...customProducts.filter((product) => product.mainCategory === "linhas"),
       ],
       acessorios: [
         ...acessoriosProducts,
-        ...customProducts.filter((p) => p.mainCategory === "acessorios"),
+        ...customProducts.filter(
+          (product) => product.mainCategory === "acessorios"
+        ),
       ],
     };
-  }, [siteContent.content.customProducts]);
+  }, [customProducts]);
 
   const mergedProducts = useMemo(
     () => [
@@ -96,18 +117,17 @@ export default function App() {
   const filteredProducts = useMemo(() => {
     if (!searchQuery) return [];
 
-    const q = searchQuery.toLowerCase();
+    const normalizedQuery = searchQuery.toLowerCase();
 
     return mergedProducts.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.category.toLowerCase().includes(q) ||
-        p.thickness?.toLowerCase().includes(q)
+      (product) =>
+        product.name.toLowerCase().includes(normalizedQuery) ||
+        product.category.toLowerCase().includes(normalizedQuery) ||
+        product.thickness?.toLowerCase().includes(normalizedQuery)
     );
   }, [mergedProducts, searchQuery]);
 
-  // Check loading state AFTER all hooks
-  if (siteContent.loading || !siteContent.content) {
+  if (siteContent.loading || !content) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-paper text-primary font-black uppercase tracking-widest">
         Carregando site...
@@ -115,41 +135,109 @@ export default function App() {
     );
   }
 
-  const navigate = (page: PageType, sub?: string) => {
-    setCurrentPage(page);
-    setActiveSubcategory(sub);
+  function scrollTop() {
     window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  }
 
-  const handleSearch = (query: string) => {
+  function navigate(page: AppPage, subcategory?: string) {
+    setCurrentPage(page);
+    setActiveSubcategory(subcategory);
+    scrollTop();
+  }
+
+  function goToLogin() {
+    setCurrentPage("login");
+    scrollTop();
+  }
+
+  function goToAccount() {
+    setCurrentPage("account");
+    scrollTop();
+  }
+
+  function handleSearch(query: string) {
     setSearchQuery(query);
     setCurrentPage("search");
-  };
+    scrollTop();
+  }
 
-  const renderPage = () => {
+  function handleAddToCart(product: Product) {
+    if (!pb.authStore.isValid) {
+      setPendingProduct(product);
+      goToLogin();
+      return;
+    }
+
+    cart.addItem(product);
+    alert("Produto adicionado ao carrinho!");
+  }
+
+  function handleLoginSuccess() {
+    const loggedUser = pb.authStore.record as any;
+
+    if (pendingProduct) {
+    cart.addItem(pendingProduct);
+    setPendingProduct(null);
+    alert("Login realizado! Produto adicionado ao carrinho.");
+    navigate("home");
+    return;
+  }
+
+  goToAccount();
+}
+
+  function getHeaderCurrentPage(): PageType {
+    if (currentPage === "login" || currentPage === "account") {
+      return "home";
+    }
+
+    return currentPage;
+  }
+
+  function renderCurrentPage() {
     switch (currentPage) {
       case "home":
         return (
           <>
-            <Hero content={siteContent.content.hero} onNavigate={navigate} />
+            <Hero content={content.hero} onNavigate={navigate} />
+
             <Features />
+
             <DailyOffers
-              offers={siteContent.content.offers}
-              onAddToCart={cart.addItem}
+              offers={content.offers}
+              onAddToCart={handleAddToCart}
               onNavigate={navigate}
             />
+
             <BestSellers
-              items={siteContent.content.bestSellers}
-              onAddToCart={cart.addItem}
+              items={content.bestSellers}
+              onAddToCart={handleAddToCart}
               onNavigate={navigate}
             />
           </>
         );
 
+      case "login":
+        return (
+          <LoginPage
+            onSuccess={handleLoginSuccess}
+            onBack={() => navigate("home")}
+          />
+        );
+
+      case "account":
+  return (
+    <MyAccountPage
+      onLoginClick={goToLogin}
+      onLogoutSuccess={() => navigate("home")}
+      onAdminClick={() => navigate("register")}
+    />
+  );
+
       case "register":
         return (
           <Account
-            content={siteContent.content}
+            content={content}
             onChangeContent={siteContent.updateContent}
             onResetContent={siteContent.resetContent}
           />
@@ -161,142 +249,140 @@ export default function App() {
             title="Varas de Pesca"
             products={productsByPage.varas}
             activeSubcategory={activeSubcategory}
-            onAddToCart={cart.addItem}
+            onAddToCart={handleAddToCart}
           />
         );
 
       case "molinetes":
         return (
           <CategoryPage
-            title="Molinetes"
+            title="Molinetes e Carretilhas"
             products={productsByPage.molinetes}
             activeSubcategory={activeSubcategory}
-            onAddToCart={cart.addItem}
+            onAddToCart={handleAddToCart}
           />
         );
 
       case "iscas":
         return (
           <CategoryPage
-            title="Iscas"
+            title="Iscas Artificiais"
             products={productsByPage.iscas}
             activeSubcategory={activeSubcategory}
-            onAddToCart={cart.addItem}
+            onAddToCart={handleAddToCart}
           />
         );
 
       case "linhas":
         return (
           <CategoryPage
-            title="Linhas"
+            title="Linhas de Pesca"
             products={productsByPage.linhas}
             activeSubcategory={activeSubcategory}
-            onAddToCart={cart.addItem}
+            onAddToCart={handleAddToCart}
           />
         );
 
       case "acessorios":
         return (
           <CategoryPage
-            title="Acessorios"
+            title="Acessórios"
             products={productsByPage.acessorios}
             activeSubcategory={activeSubcategory}
-            onAddToCart={cart.addItem}
-          />
-        );
-
-      case "catalogo":
-        return (
-          <CategoryPage
-            title="Catalogo"
-            products={[...allProducts, ...siteContent.content.customProducts]}
-            onAddToCart={cart.addItem}
-          />
-        );
-
-      case "lancamentos":
-        return (
-          <CategoryPage
-            title="Lancamentos"
-            products={premiumProducts}
-            onAddToCart={cart.addItem}
+            onAddToCart={handleAddToCart}
           />
         );
 
       case "ofertas":
         return (
           <DailyOffers
-            offers={siteContent.content.offers}
-            onAddToCart={cart.addItem}
+            offers={content.offers}
+            onAddToCart={handleAddToCart}
             onNavigate={navigate}
           />
         );
+
+      case "catalogo":
+        return (
+          <CategoryPage
+            title="Catálogo Completo"
+            products={[...allProducts, ...customProducts]}
+            onAddToCart={handleAddToCart}
+          />
+        );
+
+      case "lancamentos":
+        return (
+          <CategoryPage
+            title="Lançamentos & Premium"
+            products={premiumProducts}
+            onAddToCart={handleAddToCart}
+          />
+        );
+
+      case "sobre":
+        return <AboutPage />;
+
+      case "privacidade":
+        return <PrivacyPage />;
+
+      case "contato":
+        return <ContactUs />;
+
+      case "faq":
+        return <FAQ />;
+
+      case "trocas":
+        return <Returns />;
+
+      case "status":
+        return <OrderStatus />;
 
       case "search":
         return (
           <SearchResultsPage
             products={filteredProducts}
             query={searchQuery}
-            onAddToCart={cart.addItem}
+            onAddToCart={handleAddToCart}
             onBackHome={() => navigate("home")}
           />
         );
 
-      // 🔥 AGORA EDITÁVEL PELO ADMIN
-      case "sobre":
-        return <StaticContentPage page={siteContent.content.pages.sobre} />;
-
-      case "privacidade":
-        return <StaticContentPage page={siteContent.content.pages.privacidade} />;
-
-      case "contato":
-        return <StaticContentPage page={siteContent.content.pages.contato} />;
-
-      case "faq":
-        return <StaticContentPage page={siteContent.content.pages.faq} />;
-
-      case "trocas":
-        return <StaticContentPage page={siteContent.content.pages.trocas} />;
-
-      case "status":
-        return <StaticContentPage page={siteContent.content.pages.status} />;
-
-      case "termos":
-        return <StaticContentPage page={siteContent.content.pages.termos} />;
-
       default:
         return null;
     }
-  };
+  }
 
   return (
     <div className="min-h-screen bg-paper flex flex-col text-ink">
       <Header
         onNavigate={navigate}
-        currentPage={currentPage}
+        currentPage={getHeaderCurrentPage()}
         cartCount={cart.count}
         onOpenCart={cart.open}
         onSearch={handleSearch}
+        onAccountClick={goToAccount}
       />
 
-      <main className="flex-1">{renderPage()}</main>
+      <main className="flex-1">{renderCurrentPage()}</main>
 
       <Footer onNavigate={navigate} />
 
-      {cart.isOpen && (
-        <Cart
-          items={cart.items}
-          onUpdateQuantity={cart.updateQuantity}
-          onRemoveItem={cart.removeItem}
-          onClose={cart.close}
-        />
-      )}
+      <CartCheckout cart={cart} />
 
       <motion.button
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
         onClick={openWhatsApp}
-        className="fixed bottom-8 right-8 bg-green-500 text-white p-5 rounded-full shadow-xl"
+        className="fixed bottom-8 right-8 z-[90] bg-[#25D366] text-white p-5 rounded-full shadow-[0_10px_30px_rgba(37,211,102,0.4)] hover:bg-[#128C7E] transition-all group"
       >
-        <MessageCircle size={28} />
+        <MessageCircle size={32} />
+
+        <span className="absolute right-full mr-4 top-1/2 -translate-y-1/2 bg-white text-primary px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none border border-primary/5">
+          Fale Conosco
+        </span>
       </motion.button>
     </div>
   );
