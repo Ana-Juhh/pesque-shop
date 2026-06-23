@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 
+import ProductHoverImage from "./ProductHoverImage";
 import type { PageType } from "../types/navigation";
 import type { OfferCard } from "../types/siteContent";
 import type { Product } from "../types/shop";
@@ -9,9 +10,10 @@ interface DailyOffersProps {
   offers: OfferCard[];
   onAddToCart: (product: Product) => void;
   onNavigate: (page: PageType) => void;
+  onViewDetails: (product: Product) => void;
 }
 
-export default function DailyOffers({ offers, onAddToCart, onNavigate }: DailyOffersProps) {
+export default function DailyOffers({ offers, onAddToCart, onNavigate, onViewDetails }: DailyOffersProps) {
   const [timeLeft, setTimeLeft] = useState({ h: 3, m: 12, s: 45 });
 
   useEffect(() => {
@@ -55,10 +57,10 @@ export default function DailyOffers({ offers, onAddToCart, onNavigate }: DailyOf
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
           {offers.map((offer) => (
-            <motion.div key={offer.id} whileHover={{ y: -15 }} className="bg-paper border border-primary/5 rounded-[3rem] overflow-hidden shadow-xl hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.2)] transition-all group relative">
+            <motion.div key={offer.id} whileHover={{ y: -15 }} onClick={() => onViewDetails(offer)} className="bg-paper border border-primary/5 rounded-[3rem] overflow-hidden shadow-xl hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.2)] transition-all group relative cursor-pointer">
               <div className="relative aspect-square overflow-hidden bg-white p-12">
                 <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                <img src={offer.image} alt={offer.name} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-1000 relative z-10" referrerPolicy="no-referrer" />
+                <ProductHoverImage product={offer} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-1000 relative z-10" />
                 {!!offer.discount && <div className="absolute top-6 right-6 bg-accent text-white font-black text-[10px] px-4 py-2 rounded-full shadow-2xl uppercase tracking-widest z-20 border-2 border-white/20">{offer.discount}</div>}
               </div>
               <div className="p-10 relative">
@@ -67,8 +69,8 @@ export default function DailyOffers({ offers, onAddToCart, onNavigate }: DailyOf
                   <span className="text-[10px] text-gray-400 line-through font-black uppercase tracking-widest mb-1">De R$ {offer.oldPrice.toFixed(2)}</span>
                   <div className="flex items-baseline gap-2"><span className="text-sm font-black text-primary">Por R$</span><span className="text-4xl font-black text-primary tracking-tighter">{offer.price.toFixed(2)}</span></div>
                 </div>
-                <button onClick={() => onAddToCart(offer)} className="w-full mt-10 bg-primary hover:bg-primary/80 text-white font-black py-5 rounded-[1.5rem] transition-all uppercase text-xs tracking-[0.2em] shadow-xl transform active:scale-95 border-b-4 border-black/20">COMPRAR AGORA</button>
-                <button onClick={() => onNavigate(offer.targetPage)} className="w-full mt-3 bg-white text-primary border border-primary/10 hover:border-primary/40 font-black py-4 rounded-[1.5rem] transition-all uppercase text-[10px] tracking-[0.2em] shadow-sm">{offer.targetLabel}</button>
+                <button onClick={(event) => { event.stopPropagation(); onAddToCart(offer); }} className="w-full mt-10 bg-primary hover:bg-primary/80 text-white font-black py-5 rounded-[1.5rem] transition-all uppercase text-xs tracking-[0.2em] shadow-xl transform active:scale-95 border-b-4 border-black/20">COMPRAR AGORA</button>
+                <button onClick={(event) => { event.stopPropagation(); onNavigate(offer.targetPage); }} className="w-full mt-3 bg-white text-primary border border-primary/10 hover:border-primary/40 font-black py-4 rounded-[1.5rem] transition-all uppercase text-[10px] tracking-[0.2em] shadow-sm">{offer.targetLabel}</button>
               </div>
             </motion.div>
           ))}

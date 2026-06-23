@@ -19,17 +19,8 @@ import Footer from "./components/Footer";
 import Header from "./components/Header";
 import Hero from "./components/Hero";
 import OrderStatus from "./components/OrderStatus";
+import ProductDetailsModal from "./components/ProductDetailsModal";
 import Returns from "./components/Returns";
-
-import {
-  acessoriosProducts,
-  allProducts,
-  iscasProducts,
-  lancamentosProducts,
-  linhasProducts,
-  molinetesProducts,
-  varasProducts,
-} from "./data/products";
 
 import { useCart } from "./hooks/useCart";
 import { useSiteContent } from "./hooks/useSiteContent";
@@ -59,6 +50,7 @@ export default function App() {
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [pendingProduct, setPendingProduct] = useState<Product | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   const cart = useCart();
   const siteContent = useSiteContent();
@@ -68,30 +60,15 @@ export default function App() {
 
   const productsByPage = useMemo(() => {
     return {
-      varas: [
-        ...varasProducts,
-        ...customProducts.filter((product) => product.mainCategory === "varas"),
-      ],
-      molinetes: [
-        ...molinetesProducts,
-        ...customProducts.filter(
-          (product) => product.mainCategory === "molinetes"
-        ),
-      ],
-      iscas: [
-        ...iscasProducts,
-        ...customProducts.filter((product) => product.mainCategory === "iscas"),
-      ],
-      linhas: [
-        ...linhasProducts,
-        ...customProducts.filter((product) => product.mainCategory === "linhas"),
-      ],
-      acessorios: [
-        ...acessoriosProducts,
-        ...customProducts.filter(
-          (product) => product.mainCategory === "acessorios"
-        ),
-      ],
+      varas: customProducts.filter((product) => product.mainCategory === "varas"),
+      molinetes: customProducts.filter(
+        (product) => product.mainCategory === "molinetes"
+      ),
+      iscas: customProducts.filter((product) => product.mainCategory === "iscas"),
+      linhas: customProducts.filter((product) => product.mainCategory === "linhas"),
+      acessorios: customProducts.filter(
+        (product) => product.mainCategory === "acessorios"
+      ),
     };
   }, [customProducts]);
 
@@ -110,7 +87,7 @@ export default function App() {
     () =>
       [...mergedProducts]
         .sort((a, b) => b.price - a.price)
-        .slice(0, Math.max(8, lancamentosProducts.length)),
+        .slice(0, 8),
     [mergedProducts]
   );
 
@@ -207,12 +184,14 @@ export default function App() {
               offers={content.offers}
               onAddToCart={handleAddToCart}
               onNavigate={navigate}
+              onViewDetails={setSelectedProduct}
             />
 
             <BestSellers
               items={content.bestSellers}
               onAddToCart={handleAddToCart}
               onNavigate={navigate}
+              onViewDetails={setSelectedProduct}
             />
           </>
         );
@@ -284,6 +263,7 @@ export default function App() {
             products={productsByPage.varas}
             activeSubcategory={activeSubcategory}
             onAddToCart={handleAddToCart}
+            onViewDetails={setSelectedProduct}
           />
         );
 
@@ -294,6 +274,7 @@ export default function App() {
             products={productsByPage.molinetes}
             activeSubcategory={activeSubcategory}
             onAddToCart={handleAddToCart}
+            onViewDetails={setSelectedProduct}
           />
         );
 
@@ -304,6 +285,7 @@ export default function App() {
             products={productsByPage.iscas}
             activeSubcategory={activeSubcategory}
             onAddToCart={handleAddToCart}
+            onViewDetails={setSelectedProduct}
           />
         );
 
@@ -314,6 +296,7 @@ export default function App() {
             products={productsByPage.linhas}
             activeSubcategory={activeSubcategory}
             onAddToCart={handleAddToCart}
+            onViewDetails={setSelectedProduct}
           />
         );
 
@@ -324,6 +307,7 @@ export default function App() {
             products={productsByPage.acessorios}
             activeSubcategory={activeSubcategory}
             onAddToCart={handleAddToCart}
+            onViewDetails={setSelectedProduct}
           />
         );
 
@@ -333,6 +317,7 @@ export default function App() {
             offers={content.offers}
             onAddToCart={handleAddToCart}
             onNavigate={navigate}
+            onViewDetails={setSelectedProduct}
           />
         );
 
@@ -340,8 +325,9 @@ export default function App() {
         return (
           <CategoryPage
             title="Catálogo Completo"
-            products={[...allProducts, ...customProducts]}
+            products={customProducts}
             onAddToCart={handleAddToCart}
+            onViewDetails={setSelectedProduct}
           />
         );
 
@@ -351,6 +337,7 @@ export default function App() {
             title="Lançamentos & Premium"
             products={premiumProducts}
             onAddToCart={handleAddToCart}
+            onViewDetails={setSelectedProduct}
           />
         );
 
@@ -378,6 +365,7 @@ export default function App() {
             products={filteredProducts}
             query={searchQuery}
             onAddToCart={handleAddToCart}
+            onViewDetails={setSelectedProduct}
             onBackHome={() => navigate("home")}
           />
         );
@@ -403,6 +391,12 @@ export default function App() {
       <Footer onNavigate={navigate} />
 
       <CartCheckout cart={cart} />
+
+      <ProductDetailsModal
+        product={selectedProduct}
+        onClose={() => setSelectedProduct(null)}
+        onAddToCart={handleAddToCart}
+      />
 
       <motion.button
         initial={{ scale: 0, opacity: 0 }}

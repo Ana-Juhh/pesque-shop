@@ -91,7 +91,7 @@ interface HeaderProps {
 
       <nav className="bg-primary text-white hidden md:block border-t border-white/10 shadow-lg">
         <div className="max-w-7xl mx-auto px-4">
-          <ul className="flex items-center justify-center gap-10 py-5 text-[11px] font-black uppercase tracking-[0.2em]">
+          <ul className="flex items-center justify-center gap-10 py-5 text-[13px] font-black uppercase tracking-[0.18em]">
             {menuItems.map((item) => (
               <li key={item.id} className="relative group" onMouseEnter={() => setActiveDropdown(item.id)} onMouseLeave={() => setActiveDropdown(null)}>
                 <button onClick={() => onNavigate(item.id as PageType)} className={cn("flex items-center gap-2 hover:text-highlight transition-all py-1 relative", currentPage === item.id && "text-highlight")}>
@@ -104,7 +104,7 @@ interface HeaderProps {
                   <div className="absolute top-full left-1/2 -translate-x-1/2 bg-white text-ink shadow-2xl border border-primary/5 min-w-[240px] py-4 rounded-b-2xl z-[100]">
                     <div className="grid grid-cols-1 gap-1">
                       {item.subcategories.map((sub) => (
-                        <button key={sub} onClick={() => onNavigate(item.id as CategoryType, sub)} className="w-full text-left px-6 py-3 text-[10px] font-black uppercase tracking-widest hover:bg-primary/5 hover:text-primary transition-all border-l-4 border-transparent hover:border-primary">
+                        <button key={sub} onClick={() => onNavigate(item.id as CategoryType, sub)} className="w-full text-left px-6 py-3 text-[12px] font-black uppercase tracking-widest hover:bg-primary/5 hover:text-primary transition-all border-l-4 border-transparent hover:border-primary">
                           {sub}
                         </button>
                       ))}

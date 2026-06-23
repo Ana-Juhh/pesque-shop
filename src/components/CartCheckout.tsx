@@ -9,9 +9,10 @@ type CartCheckoutProps = {
 type AuthMode = "login" | "register";
 type PaymentMode = "pix" | "link";
 
-const PIX_KEY = "11999999999"; // Troque pela chave Pix real do dono
-const STORE_WHATSAPP = "5511999999999"; // Troque pelo WhatsApp da loja com DDI + DDD
-const PAYMENT_LINK = "https://seulinkdepagamento.com.br"; // Troque pelo link de pagamento real
+const PIX_KEY = import.meta.env.VITE_PIX_KEY || "a80faa12-2957-4fed-bd00-86b4574a62d5";
+const STORE_WHATSAPP = import.meta.env.VITE_STORE_WHATSAPP || "5511999999999";
+const PAYMENT_LINK = import.meta.env.VITE_PAYMENT_LINK || "https://link.mercadopago.com.br/pesqueshop";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3001";
 
 function getCurrentUser() {
   const authStore = pb.authStore as typeof pb.authStore & {
@@ -33,11 +34,14 @@ export function CartCheckout({ cart }: CartCheckoutProps) {
   const [user, setUser] = useState<any>(() => getCurrentUser());
   const [authMessage, setAuthMessage] = useState("");
   const [authError, setAuthError] = useState("");
+  const [orderError, setOrderError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [loadingAuth, setLoadingAuth] = useState(false);
   const [loadingOrder, setLoadingOrder] = useState(false);
 
   const [orderCreated, setOrderCreated] = useState(false);
   const [orderId, setOrderId] = useState("");
+  const [paymentLinkUrl, setPaymentLinkUrl] = useState("");
 
   const total = useMemo(() => {
     return cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -59,11 +63,14 @@ export function CartCheckout({ cart }: CartCheckoutProps) {
   function resetMessages() {
     setAuthMessage("");
     setAuthError("");
+    setOrderError("");
+    setSuccessMessage("");
   }
 
   function resetOrderResult() {
     setOrderCreated(false);
     setOrderId("");
+    setPaymentLinkUrl("");
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -160,6 +167,8 @@ export function CartCheckout({ cart }: CartCheckoutProps) {
 
     try {
       setLoadingOrder(true);
+      setPaymentLinkUrl("");
+      setSuccessMessage("");
 
       const currentUser = getCurrentUser();
 
@@ -180,13 +189,47 @@ export function CartCheckout({ cart }: CartCheckoutProps) {
         })),
       });
 
+      const response = await fetch(`${API_BASE_URL}/api/orders/process`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          orderId: order.id,
+          customerName:
+            currentUser?.name || name || currentUser?.email || "Cliente",
+          customerEmail: currentUser?.email || email || "",
+          total,
+          items: cart.items.map((item) => ({
+            id: item.id,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+          })),
+          paymentMethod: paymentMode,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.error || "Não foi possível processar o pedido no servidor."
+        );
+      }
+
+      const result = await response.json();
       setOrderId(order.id);
       setOrderCreated(true);
-    } catch (error) {
-      console.error(error);
+      setSuccessMessage("Pedido registrado e emails enviados com sucesso.");
 
-      alert(
-        "Não consegui salvar o pedido. Confira se a collection 'orders' existe no PocketBase e se os campos estão corretos."
+      if (result.paymentLink) {
+        setPaymentLinkUrl(result.paymentLink);
+      }
+    } catch (error: any) {
+      console.error(error);
+      setOrderError(
+        error?.message ||
+          "Não consegui salvar o pedido. Tente novamente em alguns instantes."
       );
     } finally {
       setLoadingOrder(false);
@@ -204,7 +247,8 @@ export function CartCheckout({ cart }: CartCheckoutProps) {
   }
 
   function openPaymentLink() {
-    window.open(PAYMENT_LINK, "_blank");
+    const url = paymentLinkUrl || PAYMENT_LINK;
+    window.open(url, "_blank");
   }
 
   function sendReceiptWhatsApp() {
@@ -533,6 +577,18 @@ Vou enviar o comprovante por aqui.`;
             {authError && (
               <p className="mt-4 rounded-xl bg-red-50 text-red-700 px-4 py-3 text-sm font-bold">
                 {authError}
+              </p>
+            )}
+
+            {orderError && (
+              <p className="mt-4 rounded-xl bg-red-50 text-red-700 px-4 py-3 text-sm font-bold">
+                {orderError}
+              </p>
+            )}
+
+            {successMessage && (
+              <p className="mt-4 rounded-xl bg-green-50 text-green-800 px-4 py-3 text-sm font-bold">
+                {successMessage}
               </p>
             )}
           </section>

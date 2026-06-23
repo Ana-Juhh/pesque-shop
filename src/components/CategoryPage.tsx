@@ -2,6 +2,7 @@ import { motion } from "motion/react";
 import { Filter, X } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/src/lib/utils";
+import ProductHoverImage from "./ProductHoverImage";
 import type { Product } from "../types/shop";
 
 interface CategoryPageProps {
@@ -9,9 +10,10 @@ interface CategoryPageProps {
   products: Product[];
   activeSubcategory?: string;
   onAddToCart: (product: Product) => void;
+  onViewDetails: (product: Product) => void;
 }
 
-export default function CategoryPage({ title, products, activeSubcategory, onAddToCart }: CategoryPageProps) {
+export default function CategoryPage({ title, products, activeSubcategory, onAddToCart, onViewDetails }: CategoryPageProps) {
   const [priceFilter, setPriceFilter] = useState<string | null>(null);
   const [thicknessFilter, setThicknessFilter] = useState<string | null>(null);
 
@@ -140,15 +142,11 @@ export default function CategoryPage({ title, products, activeSubcategory, onAdd
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     whileHover={{ y: -8 }}
-                    className="bg-white border border-primary/5 rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all group"
+                    onClick={() => onViewDetails(product)}
+                    className="bg-white border border-primary/5 rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all group cursor-pointer"
                   >
                     <div className="relative aspect-square overflow-hidden bg-white p-8">
-                      <img 
-                        src={product.image} 
-                        alt={product.name} 
-                        className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-700"
-                        referrerPolicy="no-referrer"
-                      />
+                      <ProductHoverImage product={product} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-700" />
                       {product.discount && (
                         <div className="absolute top-4 right-4 bg-accent text-white font-black text-[10px] px-3 py-1.5 rounded-full shadow-lg uppercase tracking-widest">
                           {product.discount}
@@ -172,7 +170,10 @@ export default function CategoryPage({ title, products, activeSubcategory, onAdd
                         </p>
                       </div>
                       <button 
-                        onClick={() => onAddToCart(product)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onAddToCart(product);
+                        }}
                         className="w-full mt-6 bg-primary hover:bg-primary/80 text-white font-black py-4 rounded-2xl transition-all uppercase text-xs tracking-widest shadow-lg transform active:scale-95"
                       >
                         Adicionar ao Carrinho

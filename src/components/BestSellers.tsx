@@ -1,5 +1,6 @@
 import { motion } from "motion/react";
 
+import ProductHoverImage from "./ProductHoverImage";
 import type { PageType } from "../types/navigation";
 import type { ShowcaseCard } from "../types/siteContent";
 import type { Product } from "../types/shop";
@@ -8,9 +9,10 @@ interface BestSellersProps {
   items: ShowcaseCard[];
   onAddToCart: (product: Product) => void;
   onNavigate: (page: PageType) => void;
+  onViewDetails: (product: Product) => void;
 }
 
-export default function BestSellers({ items, onAddToCart, onNavigate }: BestSellersProps) {
+export default function BestSellers({ items, onAddToCart, onNavigate, onViewDetails }: BestSellersProps) {
   return (
     <section className="py-24 bg-paper relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 relative z-10">
@@ -25,16 +27,16 @@ export default function BestSellers({ items, onAddToCart, onNavigate }: BestSell
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-10">
           {items.map((item) => (
-            <motion.div key={item.id} whileHover={{ y: -12 }} className="flex flex-col items-center text-center group">
+            <motion.div key={item.id} whileHover={{ y: -12 }} onClick={() => onViewDetails(item)} className="flex flex-col items-center text-center group cursor-pointer">
               <div className="w-full aspect-square bg-white rounded-[2.5rem] border border-primary/5 flex items-center justify-center p-8 mb-6 group-hover:border-primary transition-all shadow-xl group-hover:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.15)] relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                <img src={item.image} alt={item.name} className="max-w-full max-h-full object-contain group-hover:scale-110 transition-transform duration-700 relative z-10" referrerPolicy="no-referrer" />
+                <ProductHoverImage product={item} className="max-w-full max-h-full object-contain group-hover:scale-110 transition-transform duration-700 relative z-10" />
               </div>
               <h3 className="text-[11px] font-black text-ink group-hover:text-primary transition-colors uppercase tracking-[0.15em] leading-tight max-w-[160px]">{item.name}</h3>
               <p className="mt-2 text-xs font-black text-primary">R$ {item.price.toFixed(2)}</p>
               <div className="mt-4 flex flex-col gap-2 w-full max-w-[160px]">
-                <button onClick={() => onAddToCart(item)} className="w-full bg-primary text-white rounded-2xl py-3 text-[10px] font-black uppercase tracking-widest shadow-lg">Adicionar</button>
-                <button onClick={() => onNavigate(item.targetPage)} className="w-full bg-white text-primary border border-primary/10 rounded-2xl py-3 text-[10px] font-black uppercase tracking-widest shadow-sm">{item.targetLabel}</button>
+                <button onClick={(event) => { event.stopPropagation(); onAddToCart(item); }} className="w-full bg-primary text-white rounded-2xl py-3 text-[10px] font-black uppercase tracking-widest shadow-lg">Adicionar</button>
+                <button onClick={(event) => { event.stopPropagation(); onNavigate(item.targetPage); }} className="w-full bg-white text-primary border border-primary/10 rounded-2xl py-3 text-[10px] font-black uppercase tracking-widest shadow-sm">{item.targetLabel}</button>
               </div>
               <div className="mt-3 w-8 h-1 bg-primary/10 group-hover:w-16 group-hover:bg-primary transition-all rounded-full" />
             </motion.div>

@@ -127,10 +127,13 @@ export default function MyAccountPage({
   async function updateOrderStatus(orderId: string, status: string) {
     try {
       setUpdatingOrderId(orderId);
+      console.log("Updating order status", { orderId, status });
 
       const updatedOrder = (await pb.collection("orders").update(orderId, {
         status,
       })) as unknown as Order;
+
+      console.log("Order updated successfully", updatedOrder);
 
       setOrders((currentOrders) =>
         currentOrders.map((order) =>
@@ -143,8 +146,38 @@ export default function MyAccountPage({
             : order
         )
       );
+
+      const apiBaseUrl =
+        import.meta.env.VITE_API_URL ||
+        (window.location.hostname === "localhost"
+          ? "http://localhost:3001"
+          : window.location.origin);
+
+      console.log("Sending status email request", { apiBaseUrl, orderId, status });
+
+      // Notify backend to send status-change emails (store + customer)
+      try {
+        const resp = await fetch(`${apiBaseUrl}/api/orders/status-email`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId, status }),
+        });
+        let data: any = null;
+        try {
+          data = await resp.json();
+        } catch {}
+        if (!resp.ok || (data && data.success === false)) {
+          console.error("Status email request failed", apiBaseUrl, resp, data);
+          alert("Falha ao enviar notificação por email. Verifique os logs do servidor.");
+        } else {
+          console.log("Status email sent", data);
+        }
+      } catch (notifyError) {
+        console.error("Failed to notify backend for status email:", apiBaseUrl, notifyError);
+        alert("Erro ao conectar com o servidor para enviar notificação de email.");
+      }
     } catch (error) {
-      console.error(error);
+      console.error("Failed to update order status", error);
       alert(
         "Não consegui atualizar o status. Confira se o admin tem permissão de update na collection orders."
       );

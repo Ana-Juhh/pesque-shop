@@ -1,17 +1,45 @@
 import { useEffect, useState } from "react";
 import { pb } from "../lib/pocketbase";
-import { defaultSiteContent } from "../data/siteContent";
+import { defaultCategoryProducts, defaultSiteContent } from "../data/siteContent";
+import type { CustomCategoryProduct, SiteContent } from "../types/siteContent";
 
 const COLLECTION = "site_content";
 
-function mapRecordToContent(record: any) {
+function mergeDefaultCategoryProducts(products: CustomCategoryProduct[]) {
+  const existingIds = new Set(products.map((product) => product.id));
+  const missingDefaultProducts = defaultCategoryProducts.filter(
+    (product) => !existingIds.has(product.id)
+  );
+
+  return [...products, ...missingDefaultProducts];
+}
+
+function migrateContent(content: SiteContent): SiteContent {
+  if (content.catalogSeeded && content.customProducts.length > 0) {
+    return content;
+  }
+
   return {
+    ...content,
+    catalogSeeded: true,
+    customProducts: mergeDefaultCategoryProducts(content.customProducts ?? []),
+  };
+}
+
+function mapRecordToContent(record: any) {
+  return migrateContent({
+    catalogSeeded: record.catalogSeeded ?? false,
     hero: record.hero || defaultSiteContent.hero,
     offers: record.offers || defaultSiteContent.offers,
     bestSellers: record.bestSellers || defaultSiteContent.bestSellers,
     customProducts: record.customProducts || defaultSiteContent.customProducts,
     pages: record.pages || defaultSiteContent.pages,
-  };
+  });
+}
+
+function toPocketBasePayload(content: SiteContent) {
+  const { catalogSeeded, ...payload } = content;
+  return payload;
 }
 
 export function useSiteContent() {
@@ -69,7 +97,7 @@ export function useSiteContent() {
 
       const saved = await pb
         .collection(COLLECTION)
-        .update(currentRecordId, newContent);
+        .update(currentRecordId, toPocketBasePayload(newContent));
 
       setContent(mapRecordToContent(saved));
       setRecordId(saved.id);
@@ -85,7 +113,7 @@ export function useSiteContent() {
 
         const saved = await pb
           .collection(COLLECTION)
-          .update(latestRecord.id, newContent);
+          .update(latestRecord.id, toPocketBasePayload(newContent));
 
         setContent(mapRecordToContent(saved));
         setRecordId(saved.id);
@@ -106,7 +134,7 @@ export function useSiteContent() {
 
       const saved = await pb
         .collection(COLLECTION)
-        .update(latestRecord.id, defaultSiteContent);
+        .update(latestRecord.id, toPocketBasePayload(defaultSiteContent));
 
       setRecordId(saved.id);
       setContent(mapRecordToContent(saved));

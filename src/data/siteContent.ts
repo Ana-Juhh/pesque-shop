@@ -1,4 +1,49 @@
 import type { PageType } from "../types/navigation";
+import {
+  acessoriosProducts,
+  iscasProducts,
+  linhasProducts,
+  molinetesProducts,
+  varasProducts,
+} from "./products";
+
+export const defaultCategoryProducts = [
+  ...varasProducts.map((product) => ({
+    ...product,
+    mainCategory: "varas" as const,
+    images: [product.image],
+    description:
+      "Produto selecionado para pescarias com foco em resistencia, conforto no uso e bom desempenho em diferentes situacoes.",
+  })),
+  ...molinetesProducts.map((product) => ({
+    ...product,
+    mainCategory: "molinetes" as const,
+    images: [product.image],
+    description:
+      "Equipamento pensado para oferecer recolhimento confiavel, boa durabilidade e controle durante a fisgada.",
+  })),
+  ...iscasProducts.map((product) => ({
+    ...product,
+    mainCategory: "iscas" as const,
+    images: [product.image],
+    description:
+      "Isca indicada para aumentar a atratividade na agua e ajudar em pescarias mais produtivas.",
+  })),
+  ...linhasProducts.map((product) => ({
+    ...product,
+    mainCategory: "linhas" as const,
+    images: [product.image],
+    description:
+      "Linha escolhida para unir resistencia, sensibilidade e seguranca durante o trabalho do peixe.",
+  })),
+  ...acessoriosProducts.map((product) => ({
+    ...product,
+    mainCategory: "acessorios" as const,
+    images: [product.image],
+    description:
+      "Acessorio util para organizar, proteger ou facilitar sua rotina antes, durante e depois da pescaria.",
+  })),
+];
 
 export const navigationOptions: Array<{ value: PageType; label: string }> = [
   { value: "home", label: "Home" },
@@ -15,6 +60,7 @@ export const navigationOptions: Array<{ value: PageType; label: string }> = [
 ];
 
 export const defaultSiteContent = {
+  catalogSeeded: true,
   hero: {
     eyebrow: "Aventura & Performance",
     titleTop: "DOMINE AS",
@@ -130,7 +176,7 @@ export const defaultSiteContent = {
     },
   ],
 
-  customProducts: [],
+  customProducts: defaultCategoryProducts,
 
   pages: {
     sobre: {

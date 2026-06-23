@@ -63,10 +63,52 @@ const productCategories = menuItems.filter(
   subcategories?: string[];
 }>;
 
-function readFileAsDataUrl(file: File, callback: (value: string) => void) {
-  const reader = new FileReader();
-  reader.onload = () => callback(String(reader.result ?? ""));
-  reader.readAsDataURL(file);
+function readFileAsDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error);
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadImage(src: string) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = src;
+  });
+}
+
+async function imageFileToDataUrl(file: File) {
+  const dataUrl = await readFileAsDataUrl(file);
+
+  if (!file.type.startsWith("image/")) {
+    return dataUrl;
+  }
+
+  const image = await loadImage(dataUrl);
+  const maxSize = 1200;
+  const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
+  const width = Math.max(1, Math.round(image.width * scale));
+  const height = Math.max(1, Math.round(image.height * scale));
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+
+  if (!context) {
+    return dataUrl;
+  }
+
+  canvas.width = width;
+  canvas.height = height;
+  context.drawImage(image, 0, 0, width, height);
+
+  return canvas.toDataURL("image/webp", 0.82);
+}
+
+async function readFilesAsDataUrls(files: FileList) {
+  return Promise.all(Array.from(files).map((file) => imageFileToDataUrl(file)));
 }
 
 function ImageInput({
@@ -76,10 +118,15 @@ function ImageInput({
   onFile: (value: string) => void;
   hint?: string;
 }) {
-  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    readFileAsDataUrl(file, onFile);
+
+    try {
+      onFile(await imageFileToDataUrl(file));
+    } finally {
+      event.target.value = "";
+    }
   };
 
   return (
@@ -189,6 +236,38 @@ function SectionHeader({
   );
 }
 
+function PriceField({
+  label,
+  helper,
+  value,
+  onChange,
+}: {
+  label: string;
+  helper: string;
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <label className="space-y-2">
+      <span className="block text-[10px] font-black uppercase tracking-widest text-primary">
+        {label}
+      </span>
+      <input
+        type="number"
+        min="0"
+        step="0.01"
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value))}
+        placeholder="Digite o valor em reais"
+        className="w-full border border-primary/10 bg-white rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-primary"
+      />
+      <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-500">
+        {helper}
+      </span>
+    </label>
+  );
+}
+
 function TabButton({
   active,
   icon,
@@ -255,6 +334,98 @@ function ImagePreview({
       className={`${classes} flex items-center justify-center border border-dashed border-primary/20 bg-primary/5 text-primary/50`}
     >
       <ImageIcon size={20} />
+    </div>
+  );
+}
+
+function ExtraImagesEditor({
+  images,
+  onChange,
+}: {
+  images?: string[];
+  onChange: (images: string[]) => void;
+}) {
+  const imageList = images?.length ? images : [""];
+
+  function updateImage(index: number, value: string) {
+    const nextImages = imageList.map((image, currentIndex) =>
+      currentIndex === index ? value : image
+    );
+
+    onChange(nextImages.filter((image) => image.trim()));
+  }
+
+  function removeImage(index: number) {
+    onChange(imageList.filter((_, currentIndex) => currentIndex !== index));
+  }
+
+  async function addUploadedFiles(files: FileList | null) {
+    if (!files) return;
+
+    const uploadedImages = await readFilesAsDataUrls(files);
+
+    if (uploadedImages.length > 0) {
+      onChange([
+        ...imageList.filter((image) => image.trim()),
+        ...uploadedImages,
+      ]);
+    }
+  }
+
+  return (
+    <div className="md:col-span-2 space-y-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <p className="text-[10px] font-black uppercase tracking-widest text-primary">
+          Imagens extras do carrossel
+        </p>
+
+        <label className="flex items-center justify-center gap-2 border border-dashed border-primary/20 rounded-2xl px-4 py-3 text-[10px] font-black uppercase tracking-widest text-primary cursor-pointer bg-white">
+          <Upload size={16} />
+          Enviar arquivos
+          <input
+            type="file"
+            multiple
+            accept="image/png,image/jpeg,image/jpg,image/webp"
+            className="hidden"
+            onChange={async (event) => {
+              try {
+                await addUploadedFiles(event.target.files);
+              } finally {
+                event.target.value = "";
+              }
+            }}
+          />
+        </label>
+      </div>
+
+      {imageList.map((image, index) => (
+        <div key={index} className="flex gap-3">
+          <input
+            value={image}
+            onChange={(event) => updateImage(index, event.target.value)}
+            placeholder={`URL da imagem extra ${index + 1}`}
+            className="flex-1 border border-primary/10 bg-white rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-primary"
+          />
+
+          <button
+            type="button"
+            onClick={() => removeImage(index)}
+            className="shrink-0 text-accent hover:text-ink transition-colors px-3"
+            aria-label="Remover imagem extra"
+          >
+            <Trash2 size={18} />
+          </button>
+        </div>
+      ))}
+
+      <button
+        type="button"
+        onClick={() => onChange([...imageList.filter((image) => image.trim()), ""])}
+        className="bg-white text-primary border border-primary/10 px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-sm"
+      >
+        <Plus size={16} />
+        Adicionar imagem
+      </button>
     </div>
   );
 }
@@ -598,6 +769,35 @@ function ProductCardEditor({
                   className="md:col-span-2 border border-primary/10 bg-white rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-primary"
                 />
 
+                <textarea
+                  value={item.description ?? ""}
+                  onChange={(event) =>
+                    onChange(
+                      items.map((currentItem) =>
+                        currentItem.id === item.id
+                          ? { ...currentItem, description: event.target.value }
+                          : currentItem
+                      )
+                    )
+                  }
+                  rows={3}
+                  placeholder="Descricao do produto"
+                  className="md:col-span-2 border border-primary/10 bg-white rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-primary resize-none"
+                />
+
+                <ExtraImagesEditor
+                  images={item.images}
+                  onChange={(images) =>
+                    onChange(
+                      items.map((currentItem) =>
+                        currentItem.id === item.id
+                          ? { ...currentItem, images }
+                          : currentItem
+                      )
+                    )
+                  }
+                />
+
                 <ImageInput
                   onFile={(value) =>
                     onChange(
@@ -611,44 +811,38 @@ function ProductCardEditor({
                 />
 
                 {withOldPrice && "oldPrice" in item ? (
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
+                  <PriceField
+                    label="Valor antigo do produto"
+                    helper="Preco anterior exibido como comparacao na oferta."
                     value={item.oldPrice}
-                    onChange={(event) =>
+                    onChange={(value) =>
                       onChange(
                         items.map((currentItem) =>
                           currentItem.id === item.id
                             ? {
                                 ...currentItem,
-                                oldPrice: Number(event.target.value),
+                                oldPrice: value,
                               }
                             : currentItem
                         )
                       )
                     }
-                    placeholder="Preço antigo"
-                    className="border border-primary/10 bg-white rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-primary"
                   />
                 ) : null}
 
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
+                <PriceField
+                  label="Valor de venda do produto"
+                  helper="Este e o preco que o admin define e aparece no site."
                   value={item.price}
-                  onChange={(event) =>
+                  onChange={(value) =>
                     onChange(
                       items.map((currentItem) =>
                         currentItem.id === item.id
-                          ? { ...currentItem, price: Number(event.target.value) }
+                          ? { ...currentItem, price: value }
                           : currentItem
                       )
                     )
                   }
-                  placeholder="Preço"
-                  className="border border-primary/10 bg-white rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-primary"
                 />
 
                 <input
@@ -819,25 +1013,22 @@ function CustomProductsEditor({
                   }
                 />
 
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
+                <PriceField
+                  label="Valor de venda do produto"
+                  helper="Este e o preco que o admin define para este produto."
                   value={product.price}
-                  onChange={(event) =>
+                  onChange={(value) =>
                     onChange(
                       products.map((currentProduct) =>
                         currentProduct.id === product.id
                           ? {
                               ...currentProduct,
-                              price: Number(event.target.value),
+                              price: value,
                             }
                           : currentProduct
                       )
                     )
                   }
-                  placeholder="Preço"
-                  className="border border-primary/10 bg-white rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-primary"
                 />
 
                 <input
@@ -883,6 +1074,35 @@ function CustomProductsEditor({
                   }
                   placeholder="URL da imagem"
                   className="md:col-span-2 border border-primary/10 bg-white rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-primary"
+                />
+
+                <textarea
+                  value={product.description ?? ""}
+                  onChange={(event) =>
+                    onChange(
+                      products.map((currentProduct) =>
+                        currentProduct.id === product.id
+                          ? { ...currentProduct, description: event.target.value }
+                          : currentProduct
+                      )
+                    )
+                  }
+                  rows={3}
+                  placeholder="Descricao do produto"
+                  className="md:col-span-2 border border-primary/10 bg-white rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-primary resize-none"
+                />
+
+                <ExtraImagesEditor
+                  images={product.images}
+                  onChange={(images) =>
+                    onChange(
+                      products.map((currentProduct) =>
+                        currentProduct.id === product.id
+                          ? { ...currentProduct, images }
+                          : currentProduct
+                      )
+                    )
+                  }
                 />
 
                 <ImageInput

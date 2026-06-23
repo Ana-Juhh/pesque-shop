@@ -1,12 +1,14 @@
 import { Plus } from "lucide-react";
 import { motion } from "motion/react";
 
+import ProductHoverImage from "../components/ProductHoverImage";
 import type { Product } from "../types/shop";
 
 interface SearchResultsPageProps {
   products: Product[];
   query: string;
   onAddToCart: (product: Product) => void;
+  onViewDetails: (product: Product) => void;
   onBackHome: () => void;
 }
 
@@ -14,6 +16,7 @@ export default function SearchResultsPage({
   products,
   query,
   onAddToCart,
+  onViewDetails,
   onBackHome,
 }: SearchResultsPageProps) {
   return (
@@ -35,15 +38,11 @@ export default function SearchResultsPage({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               whileHover={{ y: -8 }}
-              className="bg-white rounded-[2rem] shadow-xl overflow-hidden border border-primary/5 group hover:shadow-2xl transition-all duration-500"
+              onClick={() => onViewDetails(product)}
+              className="bg-white rounded-[2rem] shadow-xl overflow-hidden border border-primary/5 group hover:shadow-2xl transition-all duration-500 cursor-pointer"
             >
               <div className="relative aspect-square overflow-hidden p-8 bg-primary/5">
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-700"
-                  referrerPolicy="no-referrer"
-                />
+                <ProductHoverImage product={product} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-700" />
                 {product.discount && (
                   <div className="absolute top-4 right-4 bg-secondary text-white font-black text-[10px] px-3 py-1.5 rounded-full shadow-lg uppercase tracking-widest z-10">
                     {product.discount}
@@ -62,7 +61,10 @@ export default function SearchResultsPage({
                     </div>
                   </div>
                   <button
-                    onClick={() => onAddToCart(product)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onAddToCart(product);
+                    }}
                     className="bg-primary text-white p-4 rounded-2xl hover:bg-primary/90 transition-all shadow-lg transform active:scale-95 group-hover:rotate-90"
                   >
                     <Plus size={24} />

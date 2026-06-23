@@ -34,6 +34,7 @@ export interface EditablePage {
 }
 
 export interface SiteContent {
+  catalogSeeded?: boolean;
   hero: HeroContent;
   offers: OfferCard[];
   bestSellers: ShowcaseCard[];
